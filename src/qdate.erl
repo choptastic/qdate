@@ -32,7 +32,7 @@ parse(String) ->
 	to_date(String).
 
 nparse(String) ->
-	parse_to_now(String).
+	to_now(String).
 
 to_date(Unixtime) when is_integer(Unixtime) ->
 	unixtime_to_date(Unixtime);
