@@ -39,7 +39,7 @@
 %% This the value in gregorian seconds for jan 1st 1970, 12am
 %% It's used to convert to and from unixtime, since unixtime starts 
 %% 1970-01-01 12:00am
--define(UNIXTIME_BASE, 62167219200).
+-define(UNIXTIME_BASE,62167219200).
 -define(DEFAULT_TZ, "GMT").
 
 to_string(Format) ->
@@ -155,6 +155,7 @@ all_test_() ->
 		?_assertEqual(21600,to_unixtime("1970-01-01 12:00am CST")),
 		?_assertEqual(0,to_unixtime({{1970,1,1},{0,0,0}})),
 		?_assertEqual({{1970,1,1},{0,0,0}},to_date(0)),
+		?_assertEqual({{2013,03,07},{0,0,0}},to_date(to_unixtime("2013-03-07 12am"))),
 		?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia","EST","2012-12-01 12:00pm CST")),
 		?_assertEqual(to_unixtime("2012-01-01 12:00pm CST"), to_unixtime("2012-01-01 10:00am PST")),
 		?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
