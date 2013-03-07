@@ -109,7 +109,7 @@ extract_timezone_helper(RevDate, [TZ | TZs]) ->
 to_unixtime(Unixtime) when is_integer(Unixtime) ->
 	Unixtime;
 to_unixtime({MegaSecs,Secs,_}) ->
-	MegaSecs*10000000 + Secs;
+	MegaSecs*1000000 + Secs;
 to_unixtime(ToParse) ->
 	Date = to_date(ToParse),
 	calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
