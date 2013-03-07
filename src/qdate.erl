@@ -80,7 +80,6 @@ to_date(RawDate) ->
 to_date(RawDate, ToTZ)  ->
 	{RawDate2,FromTZ} = extract_timezone(RawDate),
 	Date = raw_to_date(RawDate2),
-	sigma:log({FromTZ,ToTZ}),
 	localtime:local_to_local(Date,FromTZ,ToTZ).
 
 extract_timezone(Unixtime) when is_integer(Unixtime) ->
