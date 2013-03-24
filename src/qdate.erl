@@ -40,7 +40,17 @@
 %% It's used to convert to and from unixtime, since unixtime starts 
 %% 1970-01-01 12:00am
 -define(UNIXTIME_BASE,62167219200).
--define(DEFAULT_TZ, "GMT").
+
+%% This is the timezone only if the qdate application variable 
+%% "default_timezone" isn't set or is set to undefined.
+%% It's recommended that your app sets the var in a config, or at least using
+%%
+%% 		application:set_env(qdate, default_timezone, "GMT").
+%%
+-define(DEFAULT_TZ, case application:get_env(qdate, default_timezone) of 
+						undefined -> "GMT";
+						TZ -> TZ 
+					end).
 
 to_string(Format) ->
 	to_string(Format, now()).
