@@ -214,47 +214,82 @@ tz_test_() ->
 		fun start_test/0,
 		fun stop_test/1,
 		fun(SetupData) ->
-			{spawn,[
-				simple_test(),
-				tz_tests(SetupData)
+			{inorder,[
+				simple_test(SetupData),
+				tz_tests(SetupData),
+				test_process_die(SetupData)
 			]}
 		end
 	}.
 
 tz_tests(_) ->
-	[
-		?_assertEqual(?SELF_TZ,begin set_timezone(?SELF_TZ),get_timezone() end),
+	{inorder,[
+		?_assertEqual(ok,set_timezone(?SELF_TZ)),
+		?_assertEqual(?SELF_TZ,get_timezone()),
 		?_assertEqual(?USER_TZ,get_timezone(?USER_KEY)),
-		?_assertEqual(?SITE_TZ,get_timezone(?SITE_KEY))
-	].
+		?_assertEqual(?SITE_TZ,get_timezone(?SITE_KEY)),
+		?_assertEqual({{2013,3,7},{0,0,0}}, to_date("3/7/2013 1:00am EST",?USER_KEY)),
+		?_assertEqual({{2013,3,7},{0,0,0}}, to_date("3/7/2013 3:00am EST",?SITE_KEY)),
+		?_assertEqual({{2013,3,7},{2,0,0}}, to_date("3/7/2013 1:00am CST")) %% will use the current pid's setting
+	]}.
 
-simple_test() ->
-	[
+simple_test(_) ->
+	{inorder,[
+		?_assertEqual(ok,clear_timezone()),
 		?_assertEqual(0,to_unixtime({0,0,0})),
 		?_assertEqual({0,0,0},to_now(0)),
 		?_assertEqual(0,to_unixtime("1970-01-01 12:00am GMT")),
 		?_assertEqual(21600,to_unixtime("1970-01-01 12:00am CST")),
 		?_assertEqual(0,to_unixtime({{1970,1,1},{0,0,0}})),
 		?_assertEqual({{1970,1,1},{0,0,0}},to_date(0)),
-		?_assertEqual({{2013,03,07},{0,0,0}},to_date(to_unixtime("2013-03-07 12am"))),
+		?_assertEqual({{2013,3,7},{0,0,0}},to_date(to_unixtime("2013-03-07 12am"))),
 		?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia","EST","2012-12-01 12:00pm CST")),
 		?_assertEqual(to_unixtime("2012-01-01 12:00pm CST"), to_unixtime("2012-01-01 10:00am PST")),
 		?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
 		?_assertEqual({{2013,1,1},{0,15,15}},to_date("December 31, 2012 6:15:15pm CST","GMT"))
-	].
+	]}.
 
 %%tz_char_tests(_) ->
 %%	qdate:set_timezone(?SELF_TZ),
 
+test_process_die(_) ->
+	TZ = "MST",
+	Caller = self(),
+	Pid = spawn(fun() -> 
+						set_timezone(TZ),
+						Caller ! tz_set,
+						receive tz_set_ack -> ok end,
+						Caller ! get_timezone()
+				end),
 
+	PidTZFromOtherProc = receive 
+							tz_set ->
+								T = get_timezone(Pid),
+								Pid ! tz_set_ack,
+								T
+							after 1000 -> fail 
+						 end,
+	ReceivedTZ = receive 
+					TZ -> TZ 
+				 after 2000 ->
+					fail 
+				 end,
 
+	[
+		%% Verify we can read the spawned process's TZ from another proc
+		?_assertEqual(TZ,PidTZFromOtherProc),
+		%% Verify the spawned process properly set the TZ
+		?_assertEqual(TZ,ReceivedTZ),
+		%% Verify the now-dead spawned process's TZ is cleared
+		?_assertEqual(undefined,get_timezone(Pid))
+	].
 	
-		
 		
 start_test() ->
 	application:start(qdate),
-	qdate:set_timezone(?SITE_KEY,?SITE_TZ),
-	qdate:set_timezone(?USER_KEY,?USER_TZ).
+	set_timezone(?SELF_TZ),
+	set_timezone(?SITE_KEY,?SITE_TZ),
+	set_timezone(?USER_KEY,?USER_TZ).
 
 stop_test(_) ->
 	ok.

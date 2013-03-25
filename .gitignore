@@ -3,3 +3,4 @@
 *.sw?
 deps/
 ebin/
+.eunit/
