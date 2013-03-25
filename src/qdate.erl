@@ -185,7 +185,16 @@ floor(N) when N < 0 ->
 		Int==N -> Int;
 		true -> Int-1
 	end.
-	
+
+tz_formatting(Date,Format,TZ) ->
+	%% e, I, O, P, and T, Z
+	%% e = "UTC, GMT, Atlantic,/Azores"
+	%% I = Daylight Saving on = 1, off = 0
+	%% O = GMT diff in hours: +0200
+	%% P = GMT diff in hours with color: +02:00
+	%% T = TZ abbreviation: EST, MDT
+	%% Z = TZ offset in seconds: -43200 - 50400
+	not_implemented.
 
 %% TESTS
 -include_lib("eunit/include/eunit.hrl").
