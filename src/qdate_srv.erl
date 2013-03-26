@@ -16,24 +16,20 @@
 -export([
 	set_timezone/1,
 	set_timezone/2,
-
 	get_timezone/0,
 	get_timezone/1,
-
 	clear_timezone/0,
-	clear_timezone/1
+	clear_timezone/1,
 
-%%	register_parser/1,
-%%	register_parser/2,
-%%	
-%%	deregister_parsers/0,
-%%	deregister_parsers/1,
-%%
-%%	register_format/1,
-%%	register_format/2,
-%%
-%%	deregister_format/0,
-%%	deregister_format/1
+	register_parser/1,
+	register_parser/2,
+	get_parsers/0,
+	deregister_parsers/0,
+	deregister_parser/1,
+
+	register_format/2,
+	get_format/1,
+	deregister_format/1
 ]).
 
 %% PUBLIC API FUNCTIONS
@@ -45,7 +41,7 @@ set_timezone(TZ) ->
 	set_timezone(self(),TZ).
 
 set_timezone(Key,TZ) ->
-	gen_server:call(?SRV,{set_timezone,Key,TZ}).
+	ok = gen_server:call(?SRV,{set_timezone,Key,TZ}).
 
 get_timezone() ->
 	get_timezone(self()).
@@ -57,7 +53,32 @@ clear_timezone() ->
 	clear_timezone(self()).
 
 clear_timezone(Key) ->
-	gen_server:call(?SRV, {clear_timezone, Key}).
+	ok = gen_server:call(?SRV, {clear_timezone, Key}).
+
+register_parser(Parser) when is_function(Parser,1) ->
+	register_parser(erlang:make_ref(),Parser).
+
+register_parser(Key,Parser) when is_function(Parser,1) ->
+	Key = gen_server:call(?SRV,{register_parser,Key,Parser}).
+
+deregister_parser(Key) ->
+	ok = gen_server:call(?SRV,{deregister_parser,Key}).
+
+deregister_parsers() ->
+	ok = gen_server:call(?SRV,{deregister_parsers}).
+
+get_parsers() ->
+	gen_server:call(?SRV,{get_parsers}).	
+
+register_format(Key,Format) ->
+	ok = gen_server:call(?SRV,{register_format,Key,Format}).
+
+get_format(Key) ->
+	gen_server:call(?SRV,{get_format,Key}).
+
+deregister_format(Key) ->
+	ok = gen_server:call(?SRV,{deregister_format,Key}).
+	
 
 %% SERVER FUNCTIONS
 
@@ -92,13 +113,39 @@ handle_call({clear_timezone,Key},_From, State) ->
 handle_call({get_timezone,Key},_From, State) ->
 	Reply = case dict:find(Key, State#state.tz) of
 		error -> undefined;
-		{ok, Value} -> Value
+		{ok,TZ} -> TZ
 	end,
-	{reply, Reply, State}.
-%% handle_call({register_parser,Key,Parser}) ->
-%% handle_call({deregister_parsers,Key}) ->
-%% handle_call({register_format,Key,Format}) ->
-%% handle_call({deregister_formats,Key}) ->
+	{reply, Reply, State};
+
+handle_call({register_parser,Key,Parser},_From,State) ->
+	NewParsers = dict:store(Key, Parser, State#state.parsers),
+	NewState = State#state{parsers=NewParsers},
+	{reply, Key, NewState};
+handle_call({get_parsers},_From,State) ->
+	Reply = dict:to_list(State#state.parsers),
+	{reply, Reply, State};
+handle_call({deregister_parser,Key},_From,State) ->
+	NewParsers = dict:erase(Key, State#state.parsers),
+	NewState = State#state{parsers=NewParsers},
+	{reply, ok, NewState};
+handle_call({deregister_parsers},_From,State) ->
+	NewState = State#state{parsers=dict:new()},
+	{reply, ok, NewState};
+
+handle_call({register_format,Key,Format},_From,State) ->
+	NewFormats = dict:store(Key, Format, State#state.formats),
+	NewState = State#state{formats=NewFormats},
+	{reply, ok, NewState};
+handle_call({get_format,Key},_From,State) ->
+	Reply = case dict:find(Key, State#state.formats) of
+		error -> undefined;
+		{ok, Format} -> Format
+	end,
+	{reply, Reply,State};
+handle_call({deregister_format,Key},_From,State) ->
+	NewFormats = dict:erase(Key, State#state.formats),
+	NewState = State#state{formats=NewFormats},
+	{reply, ok, NewState}.
 
 terminate(_Reason, _State) ->
 	ok.

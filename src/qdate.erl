@@ -11,17 +11,15 @@
 	unixtime/0
 ]).
 
-%% -export([
-%% 	register_parser/2,
-%% 	register_parser/1
-%% ]).
-%%
-%% -export([
-%% 	register_format/2,
-%% 	register_format/1
-%% ]).
-%% 
 -export([
+ 	register_parser/2,
+ 	register_parser/1,
+	deregister_parser/1,
+	deregister_parsers/0,
+
+ 	register_format/2,
+ 	deregister_format/1,
+
 	set_timezone/1,
 	set_timezone/2,
 	get_timezone/0,
@@ -63,7 +61,15 @@ to_string(Format) ->
 to_string(Format, Date) ->
 	to_string(Format, ?DETERMINE_TZ, Date).
 
-to_string(Format, ToTZ, Date) ->
+to_string(FormatKey, ToTZ, Date) when is_atom(FormatKey) orelse is_tuple(FormatKey) ->
+	Format = case qdate_srv:get_format(FormatKey) of
+		undefined -> throw({undefined_format_key,FormatKey});
+		F -> F
+	end,
+	to_string(Format, ToTZ, Date);
+to_string(Format, ToTZ, Date) when is_binary(Format) ->
+	list_to_binary(to_string(binary_to_list(Format), ToTZ, Date));
+to_string(Format, ToTZ, Date) when is_list(Format) ->
 	ec_date:format(Format,to_date(Date,ToTZ)).
 
 format(Format) ->
@@ -98,9 +104,38 @@ to_date(RawDate, ToTZKey) when is_atom(ToTZKey) orelse is_tuple(ToTZKey) ->
 		ToTZ -> to_date(RawDate, ToTZ)
 	end;
 to_date(RawDate, ToTZ)  ->
-	{RawDate2,FromTZ} = extract_timezone(RawDate),
-	Date = raw_to_date(RawDate2),
+	{ExtractedDate, ExtractedTZ} = extract_timezone(RawDate),
+	{RawDate3, FromTZ} = case try_registered_parsers(RawDate) of
+		undefined ->
+			{ExtractedDate, ExtractedTZ};
+		{ParsedDate,undefined} ->
+			{ParsedDate,ExtractedTZ};
+		{ParsedDate,ParsedTZ} ->
+			{ParsedDate,ParsedTZ}
+	end,	
+	Date = raw_to_date(RawDate3),
 	localtime:local_to_local(Date,FromTZ,ToTZ).
+
+try_registered_parsers(RawDate) ->
+	Parsers = qdate_srv:get_parsers(),
+	try_parsers(RawDate,Parsers).
+	
+try_parsers(_RawDate,[]) ->
+	undefined;
+try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
+	try Parser(RawDate) of
+		{{_,_,_},{_,_,_}} = DateTime ->
+			{DateTime,undefined};
+		{DateTime={{_,_,_},{_,_,_}},Timezone} ->
+			{DateTime,Timezone};
+		undefined ->
+			try_parsers(RawDate, Parsers);
+		Other ->
+			throw({invalid_parser_return_value,[{parser_key,ParserKey},{return,Other}]})
+	catch
+		Error:Reason -> 
+			throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}]})
+	end.
 
 set_timezone(TZ) ->
 	qdate_srv:set_timezone(TZ).
@@ -168,6 +203,26 @@ to_now(ToParse) ->
 	unixtime_to_now(Unixtime).
 
 
+register_parser(Key, Parser) when is_function(Parser,1) ->
+	qdate_srv:register_parser(Key,Parser).
+
+register_parser(Parser) when is_function(Parser,1) ->
+	qdate_srv:register_parser(Parser).
+
+deregister_parser(Key) ->
+	qdate_srv:deregister_parser(Key).
+
+deregister_parsers() ->
+	qdate_srv:deregister_parsers().
+
+register_format(Key, Format) ->
+	qdate_srv:register_format(Key, Format).
+
+deregister_format(Key) ->
+	qdate_srv:deregister_format(Key).
+
+
+
 unixtime_to_now(T) when is_integer(T) ->
 	MegaSec = floor(T/1000000),
 	Secs = T - MegaSec*1000000,
@@ -196,6 +251,8 @@ tz_formatting(Date,Format,TZ) ->
 	%% Z = TZ offset in seconds: -43200 - 50400
 	not_implemented.
 
+
+
 %% TESTS
 -include_lib("eunit/include/eunit.hrl").
 
@@ -217,7 +274,8 @@ tz_test_() ->
 			{inorder,[
 				simple_test(SetupData),
 				tz_tests(SetupData),
-				test_process_die(SetupData)
+				test_process_die(SetupData),
+				parser_format_test(SetupData)
 			]}
 		end
 	}.
@@ -251,6 +309,16 @@ simple_test(_) ->
 
 %%tz_char_tests(_) ->
 %%	qdate:set_timezone(?SELF_TZ),
+
+parser_format_test(_) ->
+	{inorder,[
+		?_assertEqual({{2008,2,8},{0,0,0}},to_date("20080208")),
+		?_assertThrow({ec_date,{bad_date,_}},to_date("20111232")),	%% invalid_date with custom format
+		?_assertEqual("2/8/2008",to_string(shortdate,{{2008,2,8},{0,0,0}})),
+		?_assertEqual("2/8/2008",to_string(shortdate,"20080208")), %% both regged format and parser
+		?_assertEqual("2/8/2008 12:00am",to_string(longdate,"2008-02-08 12:00am")),
+		?_assertEqual("2/8/2008 12:00am",to_string(longdate,"20080208"))
+	]}.
 
 test_process_die(_) ->
 	TZ = "MST",
@@ -289,7 +357,44 @@ start_test() ->
 	application:start(qdate),
 	set_timezone(?SELF_TZ),
 	set_timezone(?SITE_KEY,?SITE_TZ),
-	set_timezone(?USER_KEY,?USER_TZ).
+	set_timezone(?USER_KEY,?USER_TZ),
+	register_parser(compressed,fun compressed_parser/1),
+	register_parser(microsoft_date,fun microsoft_parser/1),
+	register_format(shortdate,"n/j/Y"),
+	register_format(longdate,"n/j/Y g:ia").
+
+compressed_parser(List) when length(List)==8 ->
+	try re:run(List,"^(\\d{4})(\\d{2})(\\d{2})$",[{capture,all_but_first,list}]) of
+		nomatch -> undefined;
+		{match, [Y,M,D]} -> 
+			Date = {list_to_integer(Y),list_to_integer(M),list_to_integer(D)},
+			case calendar:valid_date(Date) of
+				true ->
+					{Date,{0,0,0}};
+				false -> undefined
+			end
+	catch
+		_:_ -> undefined
+	end;
+compressed_parser(_) -> 
+	undefined.
+
+microsoft_parser(FloatDate) when is_float(FloatDate) ->
+	try
+		DaysSince1900 = floor(FloatDate),
+		Days0to1900 = calendar:date_to_gregorian_days(1900,1,1),
+		GregorianDays = Days0to1900 + DaysSince1900,
+		Date = calendar:gregorian_days_to_date(GregorianDays),
+		Seconds = round(86400 * (FloatDate - DaysSince1900)),
+		Time = calendar:seconds_to_time(Seconds),
+		{Date,Time}
+	catch
+		_:_ -> undefined
+	end;
+microsoft_parser(_) ->
+	undefined.
+
+	
 
 stop_test(_) ->
 	ok.
