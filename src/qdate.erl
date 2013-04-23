@@ -70,7 +70,66 @@ to_string(FormatKey, ToTZ, Date) when is_atom(FormatKey) orelse is_tuple(FormatK
 to_string(Format, ToTZ, Date) when is_binary(Format) ->
 	list_to_binary(to_string(binary_to_list(Format), ToTZ, Date));
 to_string(Format, ToTZ, Date) when is_list(Format) ->
-	ec_date:format(Format,to_date(Date,ToTZ)).
+	to_string_worker(Format, ToTZ, to_date(Date,ToTZ)).
+
+to_string_worker([], _, _) ->
+	"";
+to_string_worker([$e|RestFormat], ToTZ, Date) ->
+	ToTZ ++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([$I|RestFormat], ToTZ, Date) ->
+	I = case localtime_dst:check(Date, ToTZ) of
+		is_in_dst 		-> "1";
+		is_not_in_dst 	-> "0";
+		ambiguous_time 	-> "?"
+	end,
+	I ++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([H | RestFormat], ToTZ, Date) when H==$O orelse H==$P ->
+	Shift = get_timezone_shift(Date, ToTZ),
+	Separator = case H of
+		$O -> "";
+		$P -> ":"
+	end,
+	format_shift(Shift,Separator) ++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([$T | RestFormat], ToTZ, Date) ->
+	{ShortName,_} = localtime:tz_name(Date, ToTZ),
+	ShortName ++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([$Z | RestFormat], ToTZ, Date) ->
+	{Sign, Hours, Mins} = get_timezone_shift(Date, ToTZ),
+	Seconds = (Hours * 3600) + (Mins * 60),
+	atom_to_list(Sign)  ++ integer_to_list(Seconds) ++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([$r | RestFormat], ToTZ, Date) ->
+	NewFormat = "D, d M Y H:i:s O",
+	to_string_worker(NewFormat, ToTZ, Date) ++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([$c | RestFormat], ToTZ, Date) ->
+	Format1 = "Y-m-d",
+	Format2 = "H:i:sP",
+	to_string_worker(Format1, ToTZ, Date) 
+			++ "T" 
+			++ to_string_worker(Format2, ToTZ, Date) 
+			++ to_string_worker(RestFormat, ToTZ, Date);
+to_string_worker([H | RestFormat], ToTZ, Date) ->
+	ec_date:format([H], Date) ++ to_string_worker(RestFormat, ToTZ, Date).
+
+		
+format_shift({Sign,Hours,Mins},Separator) ->
+	SignStr = atom_to_list(Sign),
+	MinStr = leading_zero(Mins),
+	HourStr = leading_zero(Hours),
+	SignStr ++ HourStr ++ Separator ++ MinStr.
+
+leading_zero(I) when I < 10 ->
+	"0" ++ integer_to_list(I);
+leading_zero(I) ->
+	integer_to_list(I).
+
+get_timezone_shift(Date, TZ) ->
+	case localtime:tz_shift(Date, TZ) of
+		unable_to_detect -> {error,unable_to_detect};
+		{error,T} -> {error,T};
+		{Sh, _DstSh} -> Sh;
+		Sh -> Sh
+	end.
+
 
 format(Format) ->
 	to_string(Format).
@@ -241,17 +300,6 @@ floor(N) when N < 0 ->
 		true -> Int-1
 	end.
 
-tz_formatting(Date,Format,TZ) ->
-	%% e, I, O, P, and T, Z
-	%% e = "UTC, GMT, Atlantic,/Azores"
-	%% I = Daylight Saving on = 1, off = 0
-	%% O = GMT diff in hours: +0200
-	%% P = GMT diff in hours with color: +02:00
-	%% T = TZ abbreviation: EST, MDT
-	%% Z = TZ offset in seconds: -43200 - 50400
-	not_implemented.
-
-
 
 %% TESTS
 -include_lib("eunit/include/eunit.hrl").
@@ -262,8 +310,6 @@ tz_formatting(Date,Format,TZ) ->
 -define(SELF_TZ,"EST"). %% Self will be the pid of the current running process
 -define(SITE_KEY,test_site_key).
 -define(USER_KEY,test_user_key).
-
-
 
 tz_test_() ->
 	{
@@ -288,7 +334,14 @@ tz_tests(_) ->
 		?_assertEqual(?SITE_TZ,get_timezone(?SITE_KEY)),
 		?_assertEqual({{2013,3,7},{0,0,0}}, to_date("3/7/2013 1:00am EST",?USER_KEY)),
 		?_assertEqual({{2013,3,7},{0,0,0}}, to_date("3/7/2013 3:00am EST",?SITE_KEY)),
-		?_assertEqual({{2013,3,7},{2,0,0}}, to_date("3/7/2013 1:00am CST")) %% will use the current pid's setting
+		?_assertEqual({{2013,3,7},{2,0,0}}, to_date("3/7/2013 1:00am CST")), %% will use the current pid's setting
+		?_assertEqual("America/Chicago",to_string("e","America/Chicago","3/7/2013 1:00am")),
+		?_assertEqual("-0500",to_string("O","EST","3/7/2013 1:00am CST")),
+		?_assertEqual("-05:00",to_string("P","EST","3/7/2013 1:00am CST")),
+		?_assertEqual("EST",to_string("T","America/New York","3/7/2013 1:00am CST")),
+		?_assertEqual(integer_to_list(-5 * 3600), to_string("Z","EST","3/7/2013 1:00am CST")),
+		?_assertEqual("Thu, 07 Mar 2013 13:15:00 -0500", to_string("r","EST", "3/7/2013 1:15:00pm")),
+		?_assertEqual("2013-03-07T13:15:00-05:00", to_string("c", "EST", "3/7/2013 1:15:00pm"))
 	]}.
 
 simple_test(_) ->
@@ -306,9 +359,6 @@ simple_test(_) ->
 		?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
 		?_assertEqual({{2013,1,1},{0,15,15}},to_date("December 31, 2012 6:15:15pm CST","GMT"))
 	]}.
-
-%%tz_char_tests(_) ->
-%%	qdate:set_timezone(?SELF_TZ),
 
 parser_format_test(_) ->
 	{inorder,[
