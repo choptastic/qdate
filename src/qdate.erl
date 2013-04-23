@@ -173,6 +173,16 @@ to_date(RawDate, ToTZ)  ->
 			{ParsedDate,ParsedTZ}
 	end,	
 	Date = raw_to_date(RawDate3),
+
+	date_tz_to_tz(Date, FromTZ, ToTZ).
+
+%% If FromTZ is an integer, then it's an integer that represents the number of minutes
+%% relative to GMT. So we convert the date to GMT based on that number, then we can
+%% do the other timezone conversion.
+date_tz_to_tz(Date, FromTZ, ToTZ) when is_integer(FromTZ) ->
+	NewDate = localtime:adjust_datetime(Date, FromTZ),
+	date_tz_to_tz(NewDate, "GMT", ToTZ);
+date_tz_to_tz(Date, FromTZ, ToTZ) ->
 	localtime:local_to_local(Date,FromTZ,ToTZ).
 
 try_registered_parsers(RawDate) ->
@@ -217,9 +227,14 @@ clear_timezone(Key) ->
 extract_timezone(Unixtime) when is_integer(Unixtime) ->
 	{Unixtime, ?DETERMINE_TZ};
 extract_timezone(DateString) when is_list(DateString) ->
-	AllTimezones = localtime:list_timezones(),
-	RevDate = lists:reverse(DateString),
-	extract_timezone_helper(RevDate, AllTimezones);
+	case extract_gmt_relative_timezone(DateString) of
+		undefined -> 
+			AllTimezones = localtime:list_timezones(),
+			RevDate = lists:reverse(DateString),
+			extract_timezone_helper(RevDate, AllTimezones);
+		{Date, GMTRel} ->
+			{Date, GMTRel}
+	end;
 extract_timezone(Date={{_,_,_},{_,_,_}}) ->
 	{Date, ?DETERMINE_TZ};
 extract_timezone(Now={_,_,_}) ->
@@ -227,6 +242,23 @@ extract_timezone(Now={_,_,_}) ->
 extract_timezone({MiscDate,TZ}) ->
 	{MiscDate,TZ}.
 	
+extract_gmt_relative_timezone(DateString) ->
+	RE = "^(.*?)(?:GMT|UTC)?([+-])(\\d{1,2}):?(\\d{2})?$",
+	case re:run(DateString,RE,[{capture,all_but_first,list},caseless]) of
+		{match, [NewDateStr, Sign, HourStr, MinStr]} ->
+			{NewDateStr, minutes_from_gmt_relative_timezone(Sign, HourStr, MinStr)};
+		{match, [NewDateStr, Sign, HourStr]} ->
+			{NewDateStr, minutes_from_gmt_relative_timezone(Sign, HourStr, "0")};
+		nomatch ->
+			undefined
+	end.
+
+%% The number of minutes a the timezone is behind gmt
+minutes_from_gmt_relative_timezone("+", HourStr, MinStr) ->
+	-minutes_from_gmt_relative_timezone("-", HourStr, MinStr);
+minutes_from_gmt_relative_timezone("-", HourStr, MinStr) ->
+	list_to_integer(HourStr)*60 + list_to_integer(MinStr).
+
 extract_timezone_helper(RevDate, []) ->
 	{lists:reverse(RevDate), ?DETERMINE_TZ};
 extract_timezone_helper(RevDate, [TZ | TZs]) ->
@@ -341,7 +373,19 @@ tz_tests(_) ->
 		?_assertEqual("EST",to_string("T","America/New York","3/7/2013 1:00am CST")),
 		?_assertEqual(integer_to_list(-5 * 3600), to_string("Z","EST","3/7/2013 1:00am CST")),
 		?_assertEqual("Thu, 07 Mar 2013 13:15:00 -0500", to_string("r","EST", "3/7/2013 1:15:00pm")),
-		?_assertEqual("2013-03-07T13:15:00-05:00", to_string("c", "EST", "3/7/2013 1:15:00pm"))
+		?_assertEqual("2013-03-07T13:15:00-05:00", to_string("c", "EST", "3/7/2013 1:15:00pm")),
+
+		?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am -0600","GMT")),
+		?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am -600","GMT")),
+		?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am GMT-0600","GMT")),
+		?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am utc-0600","GMT")),
+		?_assertEqual({{2013,3,7},{1,0,0}}, to_date("3/7/2013 12:00am utc-0600","EST")),
+		?_assertEqual({{2013,3,6},{18,0,0}}, to_date("3/7/2013 12:00am +0600","GMT")),
+		?_assertEqual({{2013,3,6},{12,0,0}}, to_date("3/7/2013 12:00am +0600","CST")),
+
+		%% parsing, then reformatting the same time with a different timezone using the php "r" (rfc2822)
+		?_assertEqual("Thu, 07 Mar 2013 12:15:00 -0600",
+			to_string("r","CST",to_string("r","EST",{{2013,3,7},{13,15,0}})))
 	]}.
 
 simple_test(_) ->
