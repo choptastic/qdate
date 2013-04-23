@@ -26,6 +26,20 @@ and parsing from and into:
  + Erlang Now Format
  + Unixtime integers
 
+#### Acceptable Date Formats
+
+  + Erlang Date Format: `{{Y,M,D},{H,M,S}}`
+  + Erlang Now Format: `{MegaSecs, Secs, MicroSecs}`
+  + Date String: `"2013-12-31 08:15pm"` (including custom formats as defined
+    with `qdate:register_parser/2` - see below)
+  + Integer Unix Timestamp: 1388448000
+  + A Two-tuple, where the first element is one of the above, and the second
+    is a timezone.  (i.e. `{{{2008,12,21},{23,59,45}}, "EST"}` or
+    `{"2008-12-21 11:59:45pm", "EST"}`). **Note:** While, you can specify a
+    timezone along with unix timestamps or the Erlang now format, it won't do
+    anything, as both of those timestamps are absolute, and imply GMT.
+
+
 All while doing so by allowing you to either set a timezone by some arbitrary
 key or by using the current process's Pid is the key.
 
@@ -36,13 +50,41 @@ T, Z, r, and c), `qdate` will handle them for us.
 
 ### Conversion Functions
 
-  + `to_string(FormatString, Date)` - "FormatString" is a string that follows the
-    `date` function formatting rules. `Date` is any date, in almost any common
-	format
-  + `to_string(FormatString)` - Formats the current time
-  + `to_date(Date)` - converts any date/time format to Erlang date format.
+  + `to_string(FormatString, ToTimezone, Date)` - "FormatString" is a string
+    that follows PHP's `date` function formatting rules. The date will be
+    converted to the specified `ToTimezone`.
+  + `to_string(FormatString, Date)` - same as `to_string/3`, but the `Timezone`
+    is intelligently determined (see below)
+  + `to_string(FormatString)` - same as `to_string/2`. but uses the current
+    time as `Date`
+  + `to_date(Date, ToTimezone)` - converts any date/time format to Erlang date
+    format. Will first convert the date to the timezone `ToTimezone`.
+  + `to_date(Date)` - same as `to_date/2`, but the timezone is determined (see below).
   + `to_now(Date)` - converts any date/time format to Erlang now format.
   + `to_unixtime(Date)` - converts any date/time format to a unixtime integer
+
+#### Understanding Timezone Determining and Conversions
+
+There is a lot of timezone inferring going on here.
+
+If a `Date` string contains timezone information (i.e.
+`"2008-12-21 6:00pm PST"`), then `qdate` will parse that properly, determine
+the specified `PST` timezone, and do conversions based on that timezone.
+Further, you can specify a timezone manually, by specifying it as as a
+two-tuple for `Date` (see "Acceptable Date formats" above).
+
+If no timezone is specified or determinable in a `Date` variable, then `qdate`
+will infer the timezone in the following order.
+
+  + If specified by `qdate:set_timezone(Timezone)` for that process. Note, as 
+    specified below (in the "Timezone Functions" section), `set_timezone/1` is
+    a shortcut to `set_timezone(self(), Timezone)`, meaning that
+    `set_timezone/1` only applies to that *specific* process. If none is
+    specified.
+  + If no timezone is specified for the process, `qdate` looks at the `qdate`
+    application variable `default_timezone`.
+  + If no timezone is specified by either of the above, `qdate` assumes "GMT"
+    for all dates.
 
 #### Conversion Functions provided for API compatibility with `ec_date`
 
@@ -94,30 +136,6 @@ be attempted before engaging the `ec_date` parser.
   + `deregister_format(Key)` - Deregister the formatting string from the
     `qdate` server.
 
-## Example:
+## Demonstration
 
-Calling `qdate:to_string` will allow single-line re-encoding of a date.
 
-Say we wanted to convert the date and time from "12/31/2013 8:15pm" to
-something like "2013-12-31 (16:15:00)":
-
-Using just `ec_date`, you would do it like this:
-```erlang
-	OldDate = "12/31/2013 8:15pm",
-
-   Date = ec_date:parse(OldDate),
-   NewString = ec_date:format("Y-m-d (H:i:s)",Date).
-```
-
-With the new method, you could do it simply and clearly with one line:
-
-```erlang
-	NewString = qdate:to_string("Y-m-d (H:i:s)",OldDate).
-```
-
-The nice thing about it this though, is that OldDate can be *any* date format,
-and it will figure it out. It can be any of the following:
-  + Erlang Date Format: `{{Y,M,D},{H,M,S}}`
-  + Erlang Now Format: `{MegaSecs, Secs, MicroSecs}`
-  + Date String: `"2013-12-31 08:15pm"`
-  + Integer Unix Timestamp: 1388448000
