@@ -225,7 +225,7 @@ clear_timezone(Key) ->
 	qdate_srv:clear_timezone(Key).
 
 extract_timezone(Unixtime) when is_integer(Unixtime) ->
-	{Unixtime, ?DETERMINE_TZ};
+	{Unixtime, "GMT"};
 extract_timezone(DateString) when is_list(DateString) ->
 	case extract_gmt_relative_timezone(DateString) of
 		undefined -> 
@@ -238,7 +238,7 @@ extract_timezone(DateString) when is_list(DateString) ->
 extract_timezone(Date={{_,_,_},{_,_,_}}) ->
 	{Date, ?DETERMINE_TZ};
 extract_timezone(Now={_,_,_}) ->
-	{Now, ?DETERMINE_TZ};
+	{Now, "GMT"};
 extract_timezone({MiscDate,TZ}) ->
 	{MiscDate,TZ}.
 	
@@ -385,7 +385,14 @@ tz_tests(_) ->
 
 		%% parsing, then reformatting the same time with a different timezone using the php "r" (rfc2822)
 		?_assertEqual("Thu, 07 Mar 2013 12:15:00 -0600",
-			to_string("r","CST",to_string("r","EST",{{2013,3,7},{13,15,0}})))
+			to_string("r","CST",to_string("r","EST",{{2013,3,7},{13,15,0}}))),
+
+		%% A bunch of unixtime and now tests with timezones
+		?_assertEqual("1987-08-10 00:59:15 GMT",to_string("Y-m-d H:i:s T","GMT",555555555)),
+		?_assertEqual("1987-08-09 19:59:15 CDT",to_string("Y-m-d H:i:s T","CDT",555555555)),
+		?_assertEqual("1987-08-09 20:59:15 EDT",to_string("Y-m-d H:i:s T","America/New York",555555555)),
+		?_assertEqual(
+
 	]}.
 
 simple_test(_) ->
