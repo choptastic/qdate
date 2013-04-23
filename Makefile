@@ -10,4 +10,4 @@ test: compile
 	./rebar skip_deps=true eunit
 
 run:
-	erl -pa ebin/ deps/*/ebin/
+	erl -pa ebin/ deps/*/ebin/ -eval "application:start(qdate)"
