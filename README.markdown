@@ -30,7 +30,7 @@ All while doing so by allowing you to either set a timezone by some arbitrary
 key or by using the current process's Pid is the key.
 
 Further, while `ec_date` doesn't support PHP's timezone characters (e, I, O, P,
-and T, Z), `qdate` will handle them for us.
+T, Z, r, and c), `qdate` will handle them for us.
 
 ## Exported Functions:
 
@@ -68,9 +68,35 @@ and T, Z), `qdate` will handle them for us.
 **Note:** If no timezone is set, then anything relying on the timezone will
 default to GMT.
 
+### Registering Custom Parsers and Formatters
+
+You can register custom parsers and formatters with the `qdate` server. This
+allows you to specify application-wide aliases for certain common formatting
+strings in your application, or to register custom parsing engines which will
+be attempted before engaging the `ec_date` parser.
+
+### Registering and Deregistering Parsers
+  + `register_parser(Key, ParseFun)` - Registers a parsing function with the
+    `qdate` server. `ParseFun` is expected to have the arity of 1, and is
+    expected to return a DateTime format (`{{Year,Month,Day},{Hour,Min,Sec}}`)
+    or, if your ParseFun is capable of parsing out a Timezone, the return
+    the tuple `{DateTime, Timezone}`. Keep in mind, if your string already ends
+    with a Timezone, the parser will almost certainly extract the timezone
+    before it gets to your custom `ParseFun`. If your custom parser is not
+    able to parse the string, then it should return `undefined`.
+  + `deregister_parser(Key)` - If you previously registered a parser with the
+    `qdate` server, you can deregister it by its `Key`.
+
+### Registering and Deregistering Formatters
+  + `register_format(Key, FormatString)` - Register a formatting string with
+    the `qdate` server, which can then be used in place of the typical
+    formatting string.
+  + `deregister_format(Key)` - Deregister the formatting string from the
+    `qdate` server.
+
 ## Example:
 
-Calling `qdate:format` will allow single-line re-encoding of a date.
+Calling `qdate:to_string` will allow single-line re-encoding of a date.
 
 Say we wanted to convert the date and time from "12/31/2013 8:15pm" to
 something like "2013-12-31 (16:15:00)":
@@ -86,7 +112,7 @@ Using just `ec_date`, you would do it like this:
 With the new method, you could do it simply and clearly with one line:
 
 ```erlang
-	NewString = qdate:format("Y-m-d (H:i:s)",OldDate).
+	NewString = qdate:to_string("Y-m-d (H:i:s)",OldDate).
 ```
 
 The nice thing about it this though, is that OldDate can be *any* date format,
