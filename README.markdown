@@ -430,7 +430,7 @@ not exist.
 
 + Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
   the backend)
-+ Add `-spec`s and `-type`s
++ Add `-spec` and `-type` info for dialyzer
 
 ## Conclusion
 
