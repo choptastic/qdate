@@ -1,4 +1,4 @@
-# qdate - A Wrapper for Erlang Date/Time Management
+# qdate - A Wrapper for Erlang Date and Timezone Management
 
 ## Purpose
 
