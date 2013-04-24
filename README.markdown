@@ -417,3 +417,20 @@ ok
 %% determine a timezone, it'll extract that timezone, and convert the time from
 %% that timezone to our intended timezone.
 ```
+
+## Thanks
+
+A few shoutouts to [Dale Harvey](http://github.com/daleharvey) and the
+[Erlware team](https://github.com/erlware) for `dh_date`/`ec_date`, and to
+[Dmitry Melnikov](https://github.com/dmitryme) for the `erlang_localtime`
+package. Without the hard work of all involved in those projects, `qdate` would
+not exist.
+
+## Conclusion
+
+I hope you find `qdate` helpful in all your endeavors!
+
+If you have any bugs, feature requests, or whatnot, feel free to post a Github
+issue.
+
+Or I'm open to pull requests!
