@@ -1,0 +1,10 @@
+language: erlang
+script: "make test"
+otp_release:
+  - R16B
+  - R15B02
+  - R15B01
+  - R15B
+  - R14B03
+  - R14B02
+before_script: "sudo apt-get --yes --force-yes install libpam0g-dev"

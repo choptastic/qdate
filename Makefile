@@ -6,7 +6,7 @@ get-deps:
 compile:
 	./rebar compile
 
-test: compile
+test: get-deps compile
 	./rebar skip_deps=true eunit
 
 run:
