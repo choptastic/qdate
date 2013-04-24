@@ -70,7 +70,14 @@ to_string(FormatKey, ToTZ, Date) when is_atom(FormatKey) orelse is_tuple(FormatK
 to_string(Format, ToTZ, Date) when is_binary(Format) ->
 	list_to_binary(to_string(binary_to_list(Format), ToTZ, Date));
 to_string(Format, ToTZ, Date) when is_list(Format) ->
-	to_string_worker(Format, ToTZ, to_date(Date,ToTZ)).
+	%% it may seem odd that we're ensuring it here, and then again
+	%% as one of the last steps of the to_date process, but we need
+	%% the actual name for the strings for the PHP "T" and "e", so
+	%% we extract the Timezone in case ToTZ is actually a timezone key
+	%% Then we can pass it on to to_date as well. That way we don't have
+	%% to do it twice, since it's already ensured.
+	ActualToTZ = ensure_timezone(ToTZ),
+	to_string_worker(Format, ActualToTZ, to_date(Date,ActualToTZ)).
 
 to_string_worker([], _, _) ->
 	"";
@@ -147,11 +154,8 @@ nparse(String) ->
 to_date(RawDate) ->
 	to_date(RawDate, ?DETERMINE_TZ).
 
-to_date(RawDate, ToTZKey) when is_atom(ToTZKey) orelse is_tuple(ToTZKey) ->
-	case get_timezone(ToTZKey) of
-		undefined -> throw({timezone_key_not_found,ToTZKey});
-		ToTZ -> to_date(RawDate, ToTZ)
-	end;
+to_date(RawDate, ToTZ) when is_binary(RawDate) ->
+	to_date(binary_to_list(RawDate), ToTZ);
 to_date(RawDate, ToTZ)  ->
 	{ExtractedDate, ExtractedTZ} = extract_timezone(RawDate),
 	{RawDate3, FromTZ} = case try_registered_parsers(RawDate) of
@@ -236,7 +240,8 @@ date_tz_to_tz(Date, FromTZ, ToTZ) when is_integer(FromTZ) ->
 	NewDate = localtime:adjust_datetime(Date, FromTZ),
 	date_tz_to_tz(NewDate, "GMT", ToTZ);
 date_tz_to_tz(Date, FromTZ, ToTZ) ->
-	localtime:local_to_local(Date,FromTZ,ToTZ).
+	ActualToTZ = ensure_timezone(ToTZ), 
+	localtime:local_to_local(Date,FromTZ,ActualToTZ).
 
 try_registered_parsers(RawDate) ->
 	Parsers = qdate_srv:get_parsers(),
@@ -270,6 +275,18 @@ get_timezone() ->
 
 get_timezone(Key) ->
 	qdate_srv:get_timezone(Key).
+
+
+ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
+	case get_timezone(Key) of
+		undefined -> throw({timezone_key_not_found,Key});
+		ToTZ -> ToTZ
+	end;
+ensure_timezone(TZ) when is_binary(TZ) ->
+	binary_to_list(TZ);
+ensure_timezone(TZ) when is_list(TZ) ->
+	TZ.
+
 
 clear_timezone() ->
 	qdate_srv:clear_timezone().
@@ -374,6 +391,7 @@ tz_tests(_) ->
 		?_assertEqual("-0500",to_string("O","EST","3/7/2013 1:00am CST")),
 		?_assertEqual("-05:00",to_string("P","EST","3/7/2013 1:00am CST")),
 		?_assertEqual("EST",to_string("T","America/New York","3/7/2013 1:00am CST")),
+		?_assertEqual(?SITE_TZ,to_string("T",?SITE_KEY,"3/7/2013 1:00am CST")),
 		?_assertEqual(integer_to_list(-5 * 3600), to_string("Z","EST","3/7/2013 1:00am CST")),
 		?_assertEqual("Thu, 07 Mar 2013 13:15:00 -0500", to_string("r","EST", "3/7/2013 1:15:00pm")),
 		?_assertEqual("2013-03-07T13:15:00-05:00", to_string("c", "EST", "3/7/2013 1:15:00pm")),
@@ -416,6 +434,9 @@ simple_test(_) ->
 		?_assertEqual({{2013,3,7},{0,0,0}},to_date(to_unixtime("2013-03-07 12am"))),
 		?_assertEqual("2013-12-21 12:24pm",to_string("Y-m-d g:ia",{{2013,12,21},{12,24,21}})),
 		?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia","EST","2012-12-01 12:00pm CST")),
+		?_assertEqual(<<"2012-12-01 1:00pm">>, to_string(<<"Y-m-d g:ia">>,"EST","2012-12-01 12:00pm CST")),
+		?_assertEqual(<<"2012-12-01 1:00pm">>, to_string(<<"Y-m-d g:ia">>,"EST",<<"2012-12-01 12:00pm CST">>)),
+		?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia","EST",<<"2012-12-01 12:00pm CST">>)),
 		?_assertEqual(to_unixtime("2012-01-01 12:00pm CST"), to_unixtime("2012-01-01 10:00am PST")),
 		?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
 		?_assertEqual({{2013,1,1},{0,15,15}},to_date("December 31, 2012 6:15:15pm CST","GMT"))
