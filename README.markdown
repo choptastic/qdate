@@ -428,9 +428,9 @@ not exist.
 
 ## TODO
 
-+ Make backend agnostic (allow specifying either ec_date or dh_date as the
-  backend)
-+ 
++ Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
+  the backend)
++ Add `-spec`s and `-type`s
 
 ## Conclusion
 
@@ -445,3 +445,5 @@ Author: [Jesse Gumm](http://sigma-star.com/page/jesse)
 Email: gumm@sigma-star.com
 
 Twitter: [@jessegumm](http://twitter.com/jessegumm)
+
+Released under the MIT License (see LICENSE file)
