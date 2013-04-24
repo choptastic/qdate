@@ -143,16 +143,6 @@ parse(String) ->
 nparse(String) ->
 	to_now(String).
 
-%% This converts dates without regard to timezone.
-%% Unixtime just goes to UTC
-raw_to_date(Unixtime) when is_integer(Unixtime) ->
-	unixtime_to_date(Unixtime);
-raw_to_date(DateString) when is_list(DateString) ->
-	ec_date:parse(DateString);
-raw_to_date(Now = {_,_,_}) ->
-	calendar:now_to_datetime(Now);
-raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
-	Date.
 
 to_date(RawDate) ->
 	to_date(RawDate, ?DETERMINE_TZ).
@@ -175,54 +165,6 @@ to_date(RawDate, ToTZ)  ->
 	Date = raw_to_date(RawDate3),
 
 	date_tz_to_tz(Date, FromTZ, ToTZ).
-
-%% If FromTZ is an integer, then it's an integer that represents the number of minutes
-%% relative to GMT. So we convert the date to GMT based on that number, then we can
-%% do the other timezone conversion.
-date_tz_to_tz(Date, FromTZ, ToTZ) when is_integer(FromTZ) ->
-	NewDate = localtime:adjust_datetime(Date, FromTZ),
-	date_tz_to_tz(NewDate, "GMT", ToTZ);
-date_tz_to_tz(Date, FromTZ, ToTZ) ->
-	localtime:local_to_local(Date,FromTZ,ToTZ).
-
-try_registered_parsers(RawDate) ->
-	Parsers = qdate_srv:get_parsers(),
-	try_parsers(RawDate,Parsers).
-	
-try_parsers(_RawDate,[]) ->
-	undefined;
-try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
-	try Parser(RawDate) of
-		{{_,_,_},{_,_,_}} = DateTime ->
-			{DateTime,undefined};
-		{DateTime={{_,_,_},{_,_,_}},Timezone} ->
-			{DateTime,Timezone};
-		undefined ->
-			try_parsers(RawDate, Parsers);
-		Other ->
-			throw({invalid_parser_return_value,[{parser_key,ParserKey},{return,Other}]})
-	catch
-		Error:Reason -> 
-			throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}]})
-	end.
-
-set_timezone(TZ) ->
-	qdate_srv:set_timezone(TZ).
-
-set_timezone(Key,TZ) ->
-	qdate_srv:set_timezone(Key, TZ).
-
-get_timezone() ->
-	qdate_srv:get_timezone().
-
-get_timezone(Key) ->
-	qdate_srv:get_timezone(Key).
-
-clear_timezone() ->
-	qdate_srv:clear_timezone().
-
-clear_timezone(Key) ->
-	qdate_srv:clear_timezone(Key).
 
 extract_timezone(Unixtime) when is_integer(Unixtime) ->
 	{Unixtime, "GMT"};
@@ -276,12 +218,73 @@ determine_timezone() ->
 		TZ -> TZ
 	end.
 
+%% This converts dates without regard to timezone.
+%% Unixtime just goes to UTC
+raw_to_date(Unixtime) when is_integer(Unixtime) ->
+	unixtime_to_date(Unixtime);
+raw_to_date(DateString) when is_list(DateString) ->
+	ec_date:parse(DateString);
+raw_to_date(Now = {_,_,_}) ->
+	calendar:now_to_datetime(Now);
+raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
+	Date.
+
+%% If FromTZ is an integer, then it's an integer that represents the number of minutes
+%% relative to GMT. So we convert the date to GMT based on that number, then we can
+%% do the other timezone conversion.
+date_tz_to_tz(Date, FromTZ, ToTZ) when is_integer(FromTZ) ->
+	NewDate = localtime:adjust_datetime(Date, FromTZ),
+	date_tz_to_tz(NewDate, "GMT", ToTZ);
+date_tz_to_tz(Date, FromTZ, ToTZ) ->
+	localtime:local_to_local(Date,FromTZ,ToTZ).
+
+try_registered_parsers(RawDate) ->
+	Parsers = qdate_srv:get_parsers(),
+	try_parsers(RawDate,Parsers).
+	
+try_parsers(_RawDate,[]) ->
+	undefined;
+try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
+	try Parser(RawDate) of
+		{{_,_,_},{_,_,_}} = DateTime ->
+			{DateTime,undefined};
+		{DateTime={{_,_,_},{_,_,_}},Timezone} ->
+			{DateTime,Timezone};
+		undefined ->
+			try_parsers(RawDate, Parsers);
+		Other ->
+			throw({invalid_parser_return_value,[{parser_key,ParserKey},{return,Other}]})
+	catch
+		Error:Reason -> 
+			throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}]})
+	end.
+
+set_timezone(TZ) ->
+	qdate_srv:set_timezone(TZ).
+
+set_timezone(Key,TZ) ->
+	qdate_srv:set_timezone(Key, TZ).
+
+get_timezone() ->
+	qdate_srv:get_timezone().
+
+get_timezone(Key) ->
+	qdate_srv:get_timezone(Key).
+
+clear_timezone() ->
+	qdate_srv:clear_timezone().
+
+clear_timezone(Key) ->
+	qdate_srv:clear_timezone(Key).
+
+
 to_unixtime(Unixtime) when is_integer(Unixtime) ->
 	Unixtime;
 to_unixtime({MegaSecs,Secs,_}) ->
 	MegaSecs*1000000 + Secs;
 to_unixtime(ToParse) ->
-	Date = to_date(ToParse),
+	%% We want to treat all unixtimes as GMT
+	Date = to_date(ToParse, "GMT"),
 	calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
 
 unixtime() ->
@@ -391,9 +394,15 @@ tz_tests(_) ->
 		?_assertEqual("1987-08-10 00:59:15 GMT",to_string("Y-m-d H:i:s T","GMT",555555555)),
 		?_assertEqual("1987-08-09 19:59:15 CDT",to_string("Y-m-d H:i:s T","CDT",555555555)),
 		?_assertEqual("1987-08-09 20:59:15 EDT",to_string("Y-m-d H:i:s T","America/New York",555555555)),
-		?_assertEqual(
-
+		?_assertEqual(ok, set_timezone("GMT")),
+		?_assertEqual(555555555,to_unixtime("1987-08-10 00:59:15 GMT")),
+        ?_assertEqual({555,555555,0},to_now("1987-08-10 00:59:15 GMT")),
+		?_assertEqual(ok, set_timezone("EST")),
+		?_assertEqual(555555555,to_unixtime("1987-08-10 00:59:15 GMT")),
+        ?_assertEqual({555,555555,0},to_now("1987-08-10 00:59:15 GMT")),
+		?_assertEqual(ok, set_timezone("GMT"))
 	]}.
+
 
 simple_test(_) ->
 	{inorder,[
@@ -405,6 +414,7 @@ simple_test(_) ->
 		?_assertEqual(0,to_unixtime({{1970,1,1},{0,0,0}})),
 		?_assertEqual({{1970,1,1},{0,0,0}},to_date(0)),
 		?_assertEqual({{2013,3,7},{0,0,0}},to_date(to_unixtime("2013-03-07 12am"))),
+		?_assertEqual("2013-12-21 12:24pm",to_string("Y-m-d g:ia",{{2013,12,21},{12,24,21}})),
 		?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia","EST","2012-12-01 12:00pm CST")),
 		?_assertEqual(to_unixtime("2012-01-01 12:00pm CST"), to_unixtime("2012-01-01 10:00am PST")),
 		?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
