@@ -426,11 +426,22 @@ A few shoutouts to [Dale Harvey](http://github.com/daleharvey) and the
 package. Without the hard work of all involved in those projects, `qdate` would
 not exist.
 
+## TODO
+
++ Make backend agnostic (allow specifying either ec_date or dh_date as the
+  backend)
++ 
+
 ## Conclusion
 
-I hope you find `qdate` helpful in all your endeavors!
+I hope you find `qdate` helpful in all your endeavors and it helps make your
+wildest dreams come true!
 
 If you have any bugs, feature requests, or whatnot, feel free to post a Github
-issue.
+issue. Or I'm open to pull requests!
 
-Or I'm open to pull requests!
+Author: [Jesse Gumm](http://sigma-star.com/page/jesse)
+
+Email: gumm@sigma-star.com
+
+Twitter: [@jessegumm](http://twitter.com/jessegumm)
