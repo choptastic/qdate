@@ -1,3 +1,6 @@
+% vim: ts=4 sw=4 et
+% Copyright (c) 2013 Jesse Gumm
+% See LICENSE for licensing information.
 
 -module(qdate_sup).
 
@@ -24,6 +27,6 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	Server = ?CHILD(qdate_srv, worker),
+    Server = ?CHILD(qdate_srv, worker),
     {ok, { {one_for_one, 5, 10}, [Server]} }.
 
