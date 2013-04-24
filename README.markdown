@@ -438,7 +438,9 @@ I hope you find `qdate` helpful in all your endeavors and it helps make your
 wildest dreams come true!
 
 If you have any bugs, feature requests, or whatnot, feel free to post a Github
-issue. Or I'm open to pull requests!
+issue, ping me on Twitter, or email me below.
+
+I'm open to pull requests. Feel free to get your hands dirty!
 
 Author: [Jesse Gumm](http://sigma-star.com/page/jesse)
 
