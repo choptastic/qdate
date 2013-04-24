@@ -138,4 +138,282 @@ be attempted before engaging the `ec_date` parser.
 
 ## Demonstration
 
+### Basic Conversion and Formatting
+```erlang
+%% Let's start by making a standard Erlang DateTime tuple
+1> Date = {{2013,12,21},{12,24,21}}.
+{{2013,12,21},{12,24,21}}
 
+%% Let's do a simple formatting of the date
+2> DateString = qdate:to_string("Y-m-d h:ia", Date).
+"2013-12-21 12:24pm"
+
+%% We can also specify the format string as a binary
+3> DateBinary = qdate:to_string(<<"Y-m-d h:ia">>,Date).
+<<"2013-12-21 12:24pm">>
+
+%% And we can parse the original string to get back a DateTime object
+4> qdate:to_date(DateString).
+{{2013,12,21},{12,24,0}}
+
+
+%% We can do the same with a binary
+5> qdate:to_date(DateBinary).
+{{2013,12,21},{12,24,0}}
+
+%% We can also parse that date and get a Unix timestamp
+6> DateUnix = qdate:to_unixtime(DateString).
+1387628640
+
+%% And we can take that Unix timestamp and format it to a string
+7> qdate:to_string("n/j/Y g:ia", DateUnix).
+"12/21/2013 12:24pm"
+
+%% We can take a date string and get an Erlang now() tuple
+8> DateNow = qdate:to_now(DateString).
+{1387,628640,0}
+
+%% And we can convert it back
+
+9> DateString2 = qdate:to_string("n/j/Y g:ia", DateNow).
+"12/21/2013 12:24pm"
+```
+
+**Note:** That by this point, we've used, as the `Date` parameter, all natively
+supported date formats: Erlang `datetime()`, Erlang `now()`, Unix timestamp,
+and formatted text strings either as a list or as a binary.
+
+For the most part, this will be the bread and butter usage of `qdate`.  Easily
+converting from one format to another without having to worry about what format
+your data is currently in. `qdate` will figure it out for you.
+
+*But now, we're going to start getting interesting!*
+
+### Registering Custom Parsers
+
+```erlang
+%% Let's format our date into something shorter. This may, for example, be a
+%% date format you may deal with when receiving a data-set from a client.
+10> CompactDate = qdate:to_string("Ymd", DateNow).
+"20131221"
+
+%% Let's try to parse it
+11> qdate:to_date(CompactDate).
+** exception throw: {ec_date,{bad_date,"20131221"}}
+     in function  ec_date:do_parse/3 (src/ec_date.erl, line 92)
+     in call from qdate:to_date/2 (src/qdate.erl, line 169)
+
+%% Well obviously, this isn't a standard format by any means, so it crashes.
+%% You can parse it yourself before passing it to `qdate` or if you deal with
+%% this format frequently enough, you can register it as a custom parser and
+%% qdate will intelligently parse it if it can.
+
+%% So let's make a simple parser for it that uses regular expressions:
+12> ParseCompressedDate =
+12>  fun(RawDate) when length(RawDate)==8 ->
+12>       try re:run(RawDate,"^(\\d{4})(\\d{2})(\\d{2})$",[{capture,all_but_first,list}]) of
+12>         nomatch -> undefined;
+12>         {match, [Y,M,D]} ->
+12>           ParsedDate = {list_to_integer(Y), list_to_integer(M), list_to_integer(D)},
+12>           case calendar:valid_date(ParsedDate) of
+12>              true -> {ParsedDate, {0,0,0}};
+12>              false -> undefined
+12>           end
+12>       catch _:_ -> undefined
+12>       end;
+12>     (_) -> undefined
+12>  end.
+#Fun<erl_eval.6.82930912>
+
+%% And now we'll register the parser with the `qdate` server, giving it a "Key"
+%% of the atom 'compressed_date'
+13> qdate:register_parser(compressed_date,ParseCompressedDate).
+compressed_date
+
+%% Now, let's try parsing that again
+14> qdate:to_date(CompactDate).
+{{2013,12,21},{0,0,0}}
+
+%% Huzzah! It worked. From here on out, `qdate`, will properly parse that kind
+%% of data if that format is passed, otherwise, it will merely skip over that
+%% parser and engage the standard parser in `ec_date`
+```
+
+**Note:** Currently, `qdate` expects custom parsers to not crash. If a custom
+parser crashes, an exception will be thrown. This is done in order to help you
+debug your parsers. If a parser receives an unexpected input and crashes, the
+exception will be generated and you will be able to track down what input caused
+the crash.
+
+**Another Note:** Custom parsers are expected to return either:
+  + A `datetime()` tuple. (ie {{2012,12,21},{14,45,23}}).
+  + The atom `undefined` if this parser is not a match for the supplied value
+
+
+### Registering Custom Formats
+
+```erlang
+%% Let's format a date to a rather long string
+15> qdate:to_string("l, F jS, Y g:i A T",DateString).
+"Saturday, December 12st, 2013 12:24 PM GMT"
+
+%% Boy, that sure was a long string, I hope you can remember all those
+%% characters in that order!
+
+%% But, you don't have to: if that's a common format you use in your
+%% application, you can register your format with the `qdate` server, and then
+%% easiy refer to that format by its key.
+
+%% So let's take that format and register it
+16> qdate:register_format(longdate, "l, F jS, Y g:i A T").
+ok
+
+%% Now, let's try to format our string 
+17> LongDateString = qdate:to_string(longdate, DateString).
+"Saturday, December 21st, 2013 12:24 PM GMT"
+
+%% It was certainly easier to remember the atom 'longdate' than trying to
+%% remember the seemingly random "l, F jS, Y g:i A T".
+```
+
+Ain't it nice, making things easier for you?
+
+### Timezone Demonstrations
+
+The observant reader would have noticed something else. We used **timezones**
+in the last couple of calls. Indeed, not only can `qdate` deal with formatting
+timezones, but it can also parse them, convert them, and set them for
+simplified conversions.
+
+Let's see how we do this
+
+```erlang
+%% Let's take that last long date string (that was in GMT) and move it to
+%% Pacific time
+18> LongDatePDT = qdate:to_string(longdate, "PDT", LongDateString).
+"Saturday, December 21st, 2013 4:24 AM PST"
+
+%% See something interesting there? Yeah, we told it it was PDT, but it output
+%% PST.  That's because PST is not in daylight saving time in December, and 
+%% `qdate` was able to intelligently infer that, and fix it for us.
+
+%% Note, that when in doubt, `qdate` will *not* convert. For example, not all
+%% places in Eastern Standard Time do daylight saving time, and as such, EST
+%% will not necessarily convert to EDT.
+
+%% However, if you provide the timezone as something like "America/New York",
+%% it *will* figure that out, and do the correct conversion for you. 
+
+%% Let's see how it handles unix times with strings that contain timezones.
+%% If you recall, LongDateString = "Saturday, December 21st, 2013 12:24 PM GMT"
+%% and LongDatePDT = "Saturday, December 21st, 2013 4:24 AM PST"
+19> qdate:to_unixtime(LongDateString).
+1387628640
+
+%% Now let's try it with the Pacific Time one
+20> qdate:to_unixtime(LongDatePDT).
+1387628640
+
+%% How exciting! `qdate` properly returned the same unix timestamp, since unix
+%% timestamps are timezone neutral. That is because unix timestamps are the
+%% number of seconds since midnight on 1970-01-01 GMT. As such, unix timestamps
+%% should not change, just because you're in a different timezone.
+
+%% Let's set the timezone for the current process to EST to test that previous
+%% assertion
+21> qdate:set_timezone("EST").
+ok
+
+%% Now let's try converting those dates to unixtimes again
+22> qdate:to_unixtime(LongDateString).
+1387628640
+23> qdate:to_unixtime(LongDatePDT).
+1387628640
+
+%% Great! They didn't change, as we expected. The unix timestamps have remained
+%% Timezone neutral.
+
+%% Let's clear the current process's timezone (which basically means setting it
+%% to the application variable `default_timezone`, or, in this case, just
+%% resetting it to "GMT"
+24> qdate:clear_timezone().
+ok
+
+%% Now, let's imagine you run a website. The main site may have its own
+%% timezone, and the users each also have their own timezones.  So we'll
+%% register timezones for each the main site, and each user. That way, if we
+%% need to ensure that a date is presented in an appropriate timezone.
+
+
+%% Let's register some timezones by "Timezone Keys".  
+25> qdate:set_timezone(my_site, "America/Chicago").
+ok
+26> qdate:set_timezone({user,1},"Australia/Melbourne").
+ok
+
+%% So we'll get the date object of the previously set unix timestamp `DateUnix`
+27> qdate:to_date(DateUnix).
+{{2013,12,21},{12,24,0}}
+
+%% And let's format it, also showing the timezone offset that was used
+28> qdate:to_string("Y-m-d H:i P", DateUnix).
+"2013-12-21 12:24 +00:00"
+
+%% Since we cleared the timezone for the current process, it just used "GMT"
+
+%% Let's get the date again, but this time, use to the Timezone key `my_site`
+29> qdate:to_date(DateUnix, my_site).
+{{2013,12,21},{6,24,0}}
+
+%% And let's format it to show again the timezone offset
+30> qdate:to_string("Y-m-d H:i P", my_site, DateUnix).
+"2013-12-21 06:24 -06:00"
+
+%% Finally, let's get the date using the User's timezone key
+31> qdate:to_date(DateUnix, {user,1}).
+{{2013,12,21},{23,24,0}}
+
+%% And again, formatted to show the timezone offset
+32> UserDateWithHourOffset = qdate:to_string("Y-m-d H:i P", {user,1}, DateUnix).
+"2013-12-21 23:24 +11:00"
+
+%% And finally, let's just test some more parsing and converting. Here, despite
+%% the fact that the timezone is presented as "+11:00", `qdate` is able to
+%% do the proper conversion, and give us back the same unix timestamp that was
+%% used.
+33> qdate:to_unixtime(UserDateWithHourOffset).
+1387628640
+```
+
+### One last bit of magic that may confuse you without an explanation
+
+Magic is usually bad, you know what's worse? Timezones and Daylight Saving
+Time. So we use a little magic to try and simplify them for us. Below is the
+extent of the confusion with related to inferring timezones and formatting dates
+
+```erlang
+%% First, let's set the timezone to something arbitrary
+34> qdate:set_timezone("EST").
+ok
+
+%% Let's convert this date to basically the same time format, just without the
+%% timezone identifier.
+35> qdate:to_string("Y-m-d H:i","2012-12-21 00:00 PST").
+"2012-12-21 03:00"
+
+%% WHAT?! We entered a date and time, and out came a different time?!
+%% I CALL SHENANIGANS!
+
+%% Let's add that timezone indicator back in with the conversion to see what
+%% happened:
+
+36> qdate:to_string("Y-m-d H:i T","2012-12-21 00:00 PST").
+"2012-12-21 03:00 EST"
+
+%% OOOOOOOHHH! I see!
+%% Because we set our current timezone to EST, it took the original provided
+%% date in PST, and converted it to EST (since EST is the timezone we've chosen
+%% for the current process). So it's taking whatever date, and if it can
+%% determine a timezone, it'll extract that timezone, and convert the time from
+%% that timezone to our intended timezone.
+```
