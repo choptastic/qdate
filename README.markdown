@@ -1,5 +1,7 @@
 # qdate - A Wrapper for Erlang Date and Timezone Management
 
+[![Build Status](https://travis-ci.org/choptastic/qdate.png?branch=master)](https://travis-ci.org/choptastic/qdate)
+
 ## Purpose
 
 Erlang Date and Time management is rather primitive, but improving.
