@@ -5,6 +5,11 @@
 -module(qdate).
 
 -export([
+    start/0,
+    stop/0
+]).
+
+-export([
     to_string/1,
     to_string/2,
     to_string/3,
@@ -58,6 +63,11 @@
 
 -define(DETERMINE_TZ, determine_timezone()).
 
+start() ->
+    application:start(qdate).
+
+stop() ->
+    application:stop(qdate).
 
 to_string(Format) ->
     to_string(Format, now()).
@@ -81,7 +91,7 @@ to_string(Format, ToTZ, Date) when is_list(Format) ->
     %% Then we can pass it on to to_date as well. That way we don't have
     %% to do it twice, since it's already ensured.
     ActualToTZ = ensure_timezone(ToTZ),
-    to_string_worker(Format, ActualToTZ, to_date(Date,ActualToTZ)).
+    to_string_worker(Format, ActualToTZ, to_date(ActualToTZ, Date)).
 
 to_string_worker([], _, _) ->
     "";
@@ -95,7 +105,7 @@ to_string_worker([$I|RestFormat], ToTZ, Date) ->
     end,
     I ++ to_string_worker(RestFormat, ToTZ, Date);
 to_string_worker([H | RestFormat], ToTZ, Date) when H==$O orelse H==$P ->
-    Shift = get_timezone_shift(Date, ToTZ),
+    Shift = get_timezone_shift(ToTZ, Date),
     Separator = case H of
         $O -> "";
         $P -> ":"
@@ -105,7 +115,7 @@ to_string_worker([$T | RestFormat], ToTZ, Date) ->
     {ShortName,_} = localtime:tz_name(Date, ToTZ),
     ShortName ++ to_string_worker(RestFormat, ToTZ, Date);
 to_string_worker([$Z | RestFormat], ToTZ, Date) ->
-    {Sign, Hours, Mins} = get_timezone_shift(Date, ToTZ),
+    {Sign, Hours, Mins} = get_timezone_shift(ToTZ, Date),
     Seconds = (Hours * 3600) + (Mins * 60),
     atom_to_list(Sign)  ++ integer_to_list(Seconds) ++ to_string_worker(RestFormat, ToTZ, Date);
 to_string_worker([$r | RestFormat], ToTZ, Date) ->
@@ -133,7 +143,7 @@ leading_zero(I) when I < 10 ->
 leading_zero(I) ->
     integer_to_list(I).
 
-get_timezone_shift(Date, TZ) ->
+get_timezone_shift(TZ, Date) ->
     case localtime:tz_shift(Date, TZ) of
         unable_to_detect -> {error,unable_to_detect};
         {error,T} -> {error,T};
@@ -156,11 +166,13 @@ nparse(String) ->
 
 
 to_date(RawDate) ->
-    to_date(RawDate, ?DETERMINE_TZ).
+    to_date(?DETERMINE_TZ, RawDate).
 
-to_date(RawDate, ToTZ) when is_binary(RawDate) ->
-    to_date(binary_to_list(RawDate), ToTZ);
-to_date(RawDate, ToTZ)  ->
+to_date(ToTZ, RawDate) when is_binary(RawDate) ->
+    to_date(ToTZ, binary_to_list(RawDate));
+to_date(ToTZ, RawDate) when is_binary(ToTZ) ->
+    to_date(binary_to_list(ToTZ), RawDate);
+to_date(ToTZ, RawDate)  ->
     {ExtractedDate, ExtractedTZ} = extract_timezone(RawDate),
     {RawDate3, FromTZ} = case try_registered_parsers(RawDate) of
         undefined ->
@@ -305,7 +317,7 @@ to_unixtime({MegaSecs,Secs,_}) ->
     MegaSecs*1000000 + Secs;
 to_unixtime(ToParse) ->
     %% We want to treat all unixtimes as GMT
-    Date = to_date(ToParse, "GMT"),
+    Date = to_date("GMT", ToParse),
     calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
 
 unixtime() ->
@@ -388,8 +400,8 @@ tz_tests(_) ->
         ?_assertEqual(?SELF_TZ,get_timezone()),
         ?_assertEqual(?USER_TZ,get_timezone(?USER_KEY)),
         ?_assertEqual(?SITE_TZ,get_timezone(?SITE_KEY)),
-        ?_assertEqual({{2013,3,7},{0,0,0}}, to_date("3/7/2013 1:00am EST",?USER_KEY)),
-        ?_assertEqual({{2013,3,7},{0,0,0}}, to_date("3/7/2013 3:00am EST",?SITE_KEY)),
+        ?_assertEqual({{2013,3,7},{0,0,0}}, to_date(?USER_KEY,"3/7/2013 1:00am EST")),
+        ?_assertEqual({{2013,3,7},{0,0,0}}, to_date(?SITE_KEY,"3/7/2013 3:00am EST")),
         ?_assertEqual({{2013,3,7},{2,0,0}}, to_date("3/7/2013 1:00am CST")), %% will use the current pid's setting
         ?_assertEqual("America/Chicago",to_string("e","America/Chicago","3/7/2013 1:00am")),
         ?_assertEqual("-0500",to_string("O","EST","3/7/2013 1:00am CST")),
@@ -400,13 +412,13 @@ tz_tests(_) ->
         ?_assertEqual("Thu, 07 Mar 2013 13:15:00 -0500", to_string("r","EST", "3/7/2013 1:15:00pm")),
         ?_assertEqual("2013-03-07T13:15:00-05:00", to_string("c", "EST", "3/7/2013 1:15:00pm")),
 
-        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am -0600","GMT")),
-        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am -600","GMT")),
-        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am GMT-0600","GMT")),
-        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("3/7/2013 12:00am utc-0600","GMT")),
-        ?_assertEqual({{2013,3,7},{1,0,0}}, to_date("3/7/2013 12:00am utc-0600","EST")),
-        ?_assertEqual({{2013,3,6},{18,0,0}}, to_date("3/7/2013 12:00am +0600","GMT")),
-        ?_assertEqual({{2013,3,6},{12,0,0}}, to_date("3/7/2013 12:00am +0600","CST")),
+        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("GMT","3/7/2013 12:00am -0600")),
+        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("GMT","3/7/2013 12:00am -600")),
+        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("GMT","3/7/2013 12:00am GMT-0600")),
+        ?_assertEqual({{2013,3,7},{6,0,0}}, to_date("GMT","3/7/2013 12:00am utc-0600")),
+        ?_assertEqual({{2013,3,7},{1,0,0}}, to_date("EST","3/7/2013 12:00am utc-0600")),
+        ?_assertEqual({{2013,3,6},{18,0,0}}, to_date("GMT","3/7/2013 12:00am +0600")),
+        ?_assertEqual({{2013,3,6},{12,0,0}}, to_date("CST","3/7/2013 12:00am +0600")),
 
         %% parsing, then reformatting the same time with a different timezone using the php "r" (rfc2822)
         ?_assertEqual("Thu, 07 Mar 2013 12:15:00 -0600",
@@ -441,9 +453,10 @@ simple_test(_) ->
         ?_assertEqual(<<"2012-12-01 1:00pm">>, to_string(<<"Y-m-d g:ia">>,"EST","2012-12-01 12:00pm CST")),
         ?_assertEqual(<<"2012-12-01 1:00pm">>, to_string(<<"Y-m-d g:ia">>,"EST",<<"2012-12-01 12:00pm CST">>)),
         ?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia","EST",<<"2012-12-01 12:00pm CST">>)),
+        ?_assertEqual("2012-12-01 1:00pm", to_string("Y-m-d g:ia",<<"EST">>,<<"2012-12-01 12:00pm CST">>)),
         ?_assertEqual(to_unixtime("2012-01-01 12:00pm CST"), to_unixtime("2012-01-01 10:00am PST")),
         ?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
-        ?_assertEqual({{2013,1,1},{0,15,15}},to_date("December 31, 2012 6:15:15pm CST","GMT"))
+        ?_assertEqual({{2013,1,1},{0,15,15}},to_date("GMT", "December 31, 2012 6:15:15pm CST"))
     ]}.
 
 parser_format_test(_) ->

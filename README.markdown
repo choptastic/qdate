@@ -59,11 +59,17 @@ T, Z, r, and c), `qdate` will handle them for us.
     is intelligently determined (see below)
   + `to_string(FormatString)` - same as `to_string/2`. but uses the current
     time as `Date`
-  + `to_date(Date, ToTimezone)` - converts any date/time format to Erlang date
+  + `to_date(ToTimezone, Date)` - converts any date/time format to Erlang date
     format. Will first convert the date to the timezone `ToTimezone`.
   + `to_date(Date)` - same as `to_date/2`, but the timezone is determined (see below).
   + `to_now(Date)` - converts any date/time format to Erlang now format.
   + `to_unixtime(Date)` - converts any date/time format to a unixtime integer
+
+**A Note About Argument Order**: In all cases, `ToTimezone` is optional and if
+omitted, will be determined as described below in "Understanding Timezone
+Determining and Conversion". If `ToTimezone` is specified, it will always be
+immediately left of the `Date` argument. `Date` will always be the last
+argument to any of the conversion and formatting functions.
 
 #### Understanding Timezone Determining and Conversions
 
@@ -364,7 +370,7 @@ ok
 %% Since we cleared the timezone for the current process, it just used "GMT"
 
 %% Let's get the date again, but this time, use to the Timezone key `my_site`
-29> qdate:to_date(DateUnix, my_site).
+29> qdate:to_date(my_site, DateUnix).
 {{2013,12,21},{6,24,0}}
 
 %% And let's format it to show again the timezone offset
@@ -372,7 +378,7 @@ ok
 "2013-12-21 06:24 -06:00"
 
 %% Finally, let's get the date using the User's timezone key
-31> qdate:to_date(DateUnix, {user,1}).
+31> qdate:to_date({user,1}, DateUnix).
 {{2013,12,21},{23,24,0}}
 
 %% And again, formatted to show the timezone offset
@@ -433,6 +439,7 @@ not exist.
 + Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
   the backend)
 + Add `-spec` and `-type` info for dialyzer
++ Add date and time arithmetic.
 
 ## Conclusion
 
