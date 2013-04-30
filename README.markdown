@@ -144,13 +144,13 @@ be attempted before engaging the `ec_date` parser.
   + `deregister_format(Key)` - Deregister the formatting string from the
     `qdate` server.
 
-## About backwards compatibility with `ec_date` and deterministic parsing
+### About backwards compatibility with `ec_date` and deterministic parsing
 
 `ec_date` and `dh_date` both have a quirk that bothers me with respect to the
 parsing of dates that causes some date parsing to be *non-deterministic*. That
 is, if parsing an incomplete date or time (ie, a text string that is missing a
 time or a date), `ec_date` will automatically insert the current values of
-those.
+those as read by the system clock.
 
 For example, if the following lines are run a few seconds apart:
 
@@ -177,7 +177,7 @@ parsed datetime has the date inferred from the current date. Admittedly,
 inferring the date bothers me less than inferring the time, but in the name of
 consistency, there should be options for enabling or disabling both.
 
-### The Solution For Both
+#### The Solution For Non-deterministic parsing
 
 To solve this issue for users that are bothered by this, while preserving
 backwards compatibility for folks who prefer this, we're going to introduce a
