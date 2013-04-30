@@ -7,9 +7,9 @@
 Erlang Date and Time management is rather primitive, but improving.
 
 [dh_date](https://github.com/daleharvey/dh_date), of which `ec_date` in 
-[erlware_commons](https://github.com/erlware/erlware_commons) is a huge step
-towards formatting and parsing dates in a way that compares nicely with PHP's
-[date](http://php.net/manual/en/function.date.php) and 
+[erlware_commons](https://github.com/erlware/erlware_commons) is a fork, is a
+huge step towards formatting and parsing dates in a way that compares nicely
+with PHP's [date](http://php.net/manual/en/function.date.php) and 
 [strtotime](http://php.net/manual/en/function.strtotime.php) functions.
 
 Unfortunately, `ec_date` doesn't deal with timezones, but conveniently, 
@@ -524,6 +524,8 @@ not exist.
   the backend)
 + Add `-spec` and `-type` info for dialyzer
 + Add date and time arithmetic.
++ Research the viability of [ezic](https://github.com/drfloob/ezic) for a
+  timezone backend replacement for `erlang_localtime`.
 
 ## Conclusion
 
