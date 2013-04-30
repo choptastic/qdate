@@ -182,9 +182,17 @@ to_date(ToTZ, RawDate)  ->
         {ParsedDate,ParsedTZ} ->
             {ParsedDate,ParsedTZ}
     end,    
-    Date = raw_to_date(RawDate3),
+    try raw_to_date(RawDate3) of
+        D={{_,_,_},{_,_,_}} ->
+            date_tz_to_tz(D, FromTZ, ToTZ)
+    catch
+        _:_ ->
+            case raw_to_date(RawDate) of
+                D2={{_,_,_},{_,_,_}} ->
+                    date_tz_to_tz(D2, ?DETERMINE_TZ, ToTZ)
+            end
+    end.
 
-    date_tz_to_tz(Date, FromTZ, ToTZ).
 
 extract_timezone(Unixtime) when is_integer(Unixtime) ->
     {Unixtime, "GMT"};
@@ -223,14 +231,16 @@ minutes_from_gmt_relative_timezone("-", HourStr, MinStr) ->
 
 extract_timezone_helper(RevDate, []) ->
     {lists:reverse(RevDate), ?DETERMINE_TZ};
-extract_timezone_helper(RevDate, [TZ | TZs]) ->
+extract_timezone_helper(RevDate, [TZ | TZs]) when length(RevDate) >= length(TZ) ->
     RevTZ = lists:reverse(TZ),
     case lists:split(length(TZ),RevDate) of
         {RevTZ," " ++ Remainder} ->
             {lists:reverse(Remainder), TZ};
         _ ->
             extract_timezone_helper(RevDate, TZs)
-    end.
+    end;
+extract_timezone_helper(RevDate, [_TZ | TZs]) ->
+    extract_timezone_helper(RevDate, TZs).
 
 determine_timezone() ->
     case qdate_srv:get_timezone() of
@@ -243,11 +253,23 @@ determine_timezone() ->
 raw_to_date(Unixtime) when is_integer(Unixtime) ->
     unixtime_to_date(Unixtime);
 raw_to_date(DateString) when is_list(DateString) ->
-    ec_date:parse(DateString);
+    ec_date:parse(DateString, get_deterministic_datetime());
 raw_to_date(Now = {_,_,_}) ->
     calendar:now_to_datetime(Now);
 raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
     Date.
+
+get_deterministic_datetime() ->
+    DateZero = {1970,1,1},
+    TimeZero = {0,0,0},
+    case application:get_env(qdate, deterministic_parsing) of
+        {ok, {zero, zero}}  -> {DateZero, TimeZero};
+        {ok, {zero, now}}   -> {DateZero, time()};
+        {ok, {now, zero}}   -> {date(), TimeZero};
+        {ok, {now, now}}    -> {date(), time()};
+        undefined           -> {DateZero, TimeZero};
+        {ok, Val}           -> throw({invalid_env_var, {qdate, deterministic_parsing, Val}})
+    end.
 
 %% If FromTZ is an integer, then it's an integer that represents the number of minutes
 %% relative to GMT. So we convert the date to GMT based on that number, then we can
@@ -389,10 +411,26 @@ tz_test_() ->
                 simple_test(SetupData),
                 tz_tests(SetupData),
                 test_process_die(SetupData),
-                parser_format_test(SetupData)
+                parser_format_test(SetupData),
+                test_deterministic_parser(SetupData)
             ]}
         end
     }.
+
+test_deterministic_parser(_) ->
+    {inorder, [
+        ?_assertEqual(ok, application:set_env(qdate, deterministic_parsing, {now, now})),
+        ?_assertEqual({date(), {7,0,0}}, qdate:to_date("7am")),
+        ?_assertEqual({{2012,5,10}, time()}, qdate:to_date("2012-5-10")),
+
+        ?_assertEqual(ok, application:set_env(qdate, deterministic_parsing, {zero, zero})),
+        ?_assertEqual({{1970,1,1}, {7,0,0}}, qdate:to_date("7am")),
+        ?_assertEqual({{2012,5,10}, {0,0,0}}, qdate:to_date("2012-5-10")),
+
+        ?_assertEqual(ok, application:unset_env(qdate, deterministic_parsing)),
+        ?_assertEqual({{1970,1,1}, {7,0,0}}, qdate:to_date("7am")),
+        ?_assertEqual({{2012,5,10}, {0,0,0}}, qdate:to_date("2012-5-10"))
+    ]}.
 
 tz_tests(_) ->
     {inorder,[

@@ -144,6 +144,90 @@ be attempted before engaging the `ec_date` parser.
   + `deregister_format(Key)` - Deregister the formatting string from the
     `qdate` server.
 
+## About backwards compatibility with `ec_date` and deterministic parsing
+
+`ec_date` and `dh_date` both have a quirk that bothers me with respect to the
+parsing of dates that causes some date parsing to be *non-deterministic*. That
+is, if parsing an incomplete date or time (ie, a text string that is missing a
+time or a date), `ec_date` will automatically insert the current values of
+those.
+
+For example, if the following lines are run a few seconds apart:
+
+```erlang
+1> ec_date:parse("2012-02-04").
+{{2012,2,4},{0,1,10}}
+2> ec_date:parse("2012-02-04").
+{{2012,2,4},{0,1,12}}
+3> ec_date:parse("2012-02-04").
+{{2012,2,4},{0,1,13}}
+```
+
+As you can see, even though the inputs are the same each time, the resulting
+parsed dates have the current time inferred. The same behavior can be observed
+if parsing a time without a date:
+
+```erlang
+4> ec_date:parse("7pm").
+{{2013,4,30},{19,0,0}}
+```
+
+As you can see, even though the time did not specify a date, the resulting
+parsed datetime has the date inferred from the current date. Admittedly,
+inferring the date bothers me less than inferring the time, but in the name of
+consistency, there should be options for enabling or disabling both.
+
+### The Solution For Both
+
+To solve this issue for users that are bothered by this, while preserving
+backwards compatibility for folks who prefer this, we're going to introduce a
+`qdate` application environment variable called `deterministic_parsing`.
+
+The value of `deterministic_parsing` can be a tuple of the following format:
+
+`{DatePref, TimePref}`
+
+Where `DatePref` and `TimePref` are either of the following atoms:
+
+  + `now` - Automatically fill in the missing date or time components with the
+    current time (the is the behavior described above)
+  + `zero` - Fill in the missing date or time components with zeroed out
+    values. This means that if a date is missing, it'll be set to the unix
+    epoch (`{1970,1,1}`) and if a time is missing, it'll be set to midnight:
+    `{0,0,0}`.
+
+So, the acceptable combinations can be the following:
+
+  + `{zero, zero}` - Any missing components will be replaced with zero-values.
+    **(This is the qdate default behavior)**
+  + `{now, zero}` - If a date is missing, insert the current date, but if a
+    time is missing, set it to midnight.
+  + `{zero, now}` - If a date is missing, set it to the unix epoch, and if a
+    time is missing, set it to the current time of day.
+  + `{now, now}` - If either date or time are missing, set it to the current
+    date or current time.
+
+**Note:** If this application value is not set, the default behavior for
+`qdate` is to avoid non-determinism and use `{zero, zero}`.
+
+To set this value, you can either set the value manually in code with:
+
+```erlang
+application:set_env(qdate, deterministic_parsing, {now, zero}).
+```
+
+or (and this is the preferred method) use a config file and load it with
+
+`erl -config path/to/file.config`
+
+Sample config file specifying this application variable:
+
+```erlang
+[{qdate, [
+    {deterministic_parsing, {now, zero}}
+]}].
+```
+
 ## Demonstration
 
 ### Basic Conversion and Formatting
