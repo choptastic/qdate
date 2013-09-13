@@ -70,7 +70,7 @@ stop() ->
     application:stop(qdate).
 
 to_string(Format) ->
-    to_string(Format, now()).
+    to_string(Format, os:timestamp()).
 
 to_string(Format, Date) ->
     to_string(Format, ?DETERMINE_TZ, Date).
@@ -343,7 +343,7 @@ to_unixtime(ToParse) ->
     calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
 
 unixtime() ->
-    to_unixtime(now()).
+    to_unixtime(os:timestamp()).
 
 to_now(Now = {_,_,_}) ->
     Now;
@@ -369,7 +369,6 @@ register_format(Key, Format) ->
 
 deregister_format(Key) ->
     qdate_srv:deregister_format(Key).
-
 
 
 unixtime_to_now(T) when is_integer(T) ->
