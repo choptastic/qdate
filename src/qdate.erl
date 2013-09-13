@@ -563,7 +563,8 @@ compare_test(_) ->
         ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'<',"Sep 10th, 2013 12:02am")),
         ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'<',"Sep 10th, 2013 1am")),
         ?_assertEqual(true, compare({{2013,9,9},{23,59,59}},'<',"Sep 10th, 2013 12am")),
-        ?_assertEqual(false, compare({{2013,9,9},{23,59,59}},'>',"Sep 10th, 2013 12am"))
+        ?_assertEqual(false, compare({{2013,9,9},{23,59,59}},'>',"Sep 10th, 2013 12am")),
+        ?_assertEqual(true, compare("11am EST",'==',"10am CST"))
     ]}.
 
 parser_format_test(_) ->
