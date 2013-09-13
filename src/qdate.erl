@@ -21,6 +21,11 @@
 ]).
 
 -export([
+    compare/2,
+    compare/3
+]).
+
+-export([
     register_parser/2,
     register_parser/1,
     deregister_parser/1,
@@ -68,6 +73,7 @@ start() ->
 
 stop() ->
     application:stop(qdate).
+
 
 to_string(Format) ->
     to_string(Format, os:timestamp()).
@@ -143,14 +149,6 @@ leading_zero(I) when I < 10 ->
 leading_zero(I) ->
     integer_to_list(I).
 
-get_timezone_shift(TZ, Date) ->
-    case localtime:tz_shift(Date, TZ) of
-        unable_to_detect -> {error,unable_to_detect};
-        {error,T} -> {error,T};
-        {Sh, _DstSh} -> Sh;
-        Sh -> Sh
-    end.
-
 
 format(Format) ->
     to_string(Format).
@@ -191,6 +189,93 @@ to_date(ToTZ, RawDate)  ->
                 D2={{_,_,_},{_,_,_}} ->
                     date_tz_to_tz(D2, ?DETERMINE_TZ, ToTZ)
             end
+    end.
+
+%% This converts dates without regard to timezone.
+%% Unixtime just goes to UTC
+raw_to_date(Unixtime) when is_integer(Unixtime) ->
+    unixtime_to_date(Unixtime);
+raw_to_date(DateString) when is_list(DateString) ->
+    ec_date:parse(DateString, get_deterministic_datetime());
+raw_to_date(Now = {_,_,_}) ->
+    calendar:now_to_datetime(Now);
+raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
+    Date.
+
+get_deterministic_datetime() ->
+    DateZero = {1970,1,1},
+    TimeZero = {0,0,0},
+    case application:get_env(qdate, deterministic_parsing) of
+        {ok, {zero, zero}}  -> {DateZero, TimeZero};
+        {ok, {zero, now}}   -> {DateZero, time()};
+        {ok, {now, zero}}   -> {date(), TimeZero};
+        {ok, {now, now}}    -> {date(), time()};
+        undefined           -> {DateZero, TimeZero};
+        {ok, Val}           -> throw({invalid_env_var, {qdate, deterministic_parsing, Val}})
+    end.
+
+
+to_unixtime(Unixtime) when is_integer(Unixtime) ->
+    Unixtime;
+to_unixtime({MegaSecs,Secs,_}) ->
+    MegaSecs*1000000 + Secs;
+to_unixtime(ToParse) ->
+    %% We want to treat all unixtimes as GMT
+    Date = to_date("GMT", ToParse),
+    calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
+
+unixtime() ->
+    to_unixtime(os:timestamp()).
+
+to_now(Now = {_,_,_}) ->
+    Now;
+to_now(ToParse) ->
+    Unixtime = to_unixtime(ToParse),
+    unixtime_to_now(Unixtime).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Comparisons     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+compare(A, B) ->
+    NowA = to_now(A),
+    NowB = to_now(B),
+    if
+        NowA == NowB -> 0;
+        NowA < NowB -> -1;
+        NowA > NowB -> 1
+    end.
+
+compare(A, Op, B) ->
+    Comp = compare(A, B),
+    case Op of
+        '=='    -> Comp =:= 0;
+        '='     -> Comp =:= 0;
+
+        '!='    -> Comp =/= 0;
+        '=/='   -> Comp =/= 0;
+        '/='    -> Comp =/= 0;
+
+        '<'     -> Comp =:= -1;
+        '<='    -> Comp =:= -1 orelse Comp =:= 0;
+        '=<'    -> Comp =:= -1 orelse Comp =:= 0;
+
+        '>'     -> Comp =:= 1;
+        '>='    -> Comp =:= 1 orelse Comp =:= 0;
+        '=>'    -> Comp =:= 1 orelse Comp =:= 0
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Timezone Stuff   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_timezone_shift(TZ, Date) ->
+    case localtime:tz_shift(Date, TZ) of
+        unable_to_detect -> {error,unable_to_detect};
+        {error,T} -> {error,T};
+        {Sh, _DstSh} -> Sh;
+        Sh -> Sh
     end.
 
 
@@ -248,29 +333,6 @@ determine_timezone() ->
         TZ -> TZ
     end.
 
-%% This converts dates without regard to timezone.
-%% Unixtime just goes to UTC
-raw_to_date(Unixtime) when is_integer(Unixtime) ->
-    unixtime_to_date(Unixtime);
-raw_to_date(DateString) when is_list(DateString) ->
-    ec_date:parse(DateString, get_deterministic_datetime());
-raw_to_date(Now = {_,_,_}) ->
-    calendar:now_to_datetime(Now);
-raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
-    Date.
-
-get_deterministic_datetime() ->
-    DateZero = {1970,1,1},
-    TimeZero = {0,0,0},
-    case application:get_env(qdate, deterministic_parsing) of
-        {ok, {zero, zero}}  -> {DateZero, TimeZero};
-        {ok, {zero, now}}   -> {DateZero, time()};
-        {ok, {now, zero}}   -> {date(), TimeZero};
-        {ok, {now, now}}    -> {date(), time()};
-        undefined           -> {DateZero, TimeZero};
-        {ok, Val}           -> throw({invalid_env_var, {qdate, deterministic_parsing, Val}})
-    end.
-
 %% If FromTZ is an integer, then it's an integer that represents the number of minutes
 %% relative to GMT. So we convert the date to GMT based on that number, then we can
 %% do the other timezone conversion.
@@ -280,6 +342,51 @@ date_tz_to_tz(Date, FromTZ, ToTZ) when is_integer(FromTZ) ->
 date_tz_to_tz(Date, FromTZ, ToTZ) ->
     ActualToTZ = ensure_timezone(ToTZ), 
     localtime:local_to_local(Date,FromTZ,ActualToTZ).
+
+set_timezone(TZ) ->
+    qdate_srv:set_timezone(TZ).
+
+set_timezone(Key,TZ) ->
+    qdate_srv:set_timezone(Key, TZ).
+
+get_timezone() ->
+    qdate_srv:get_timezone().
+
+get_timezone(Key) ->
+    qdate_srv:get_timezone(Key).
+
+ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
+    case get_timezone(Key) of
+        undefined -> throw({timezone_key_not_found,Key});
+        ToTZ -> ToTZ
+    end;
+ensure_timezone(TZ) when is_binary(TZ) ->
+    binary_to_list(TZ);
+ensure_timezone(TZ) when is_list(TZ) ->
+    TZ.
+
+clear_timezone() ->
+    qdate_srv:clear_timezone().
+
+clear_timezone(Key) ->
+    qdate_srv:clear_timezone(Key).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Register Parsers  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+register_parser(Key, Parser) when is_function(Parser,1) ->
+    qdate_srv:register_parser(Key,Parser).
+
+register_parser(Parser) when is_function(Parser,1) ->
+    qdate_srv:register_parser(Parser).
+
+deregister_parser(Key) ->
+    qdate_srv:deregister_parser(Key).
+
+deregister_parsers() ->
+    qdate_srv:deregister_parsers().
 
 try_registered_parsers(RawDate) ->
     Parsers = qdate_srv:get_parsers(),
@@ -302,73 +409,16 @@ try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
             throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}]})
     end.
 
-set_timezone(TZ) ->
-    qdate_srv:set_timezone(TZ).
-
-set_timezone(Key,TZ) ->
-    qdate_srv:set_timezone(Key, TZ).
-
-get_timezone() ->
-    qdate_srv:get_timezone().
-
-get_timezone(Key) ->
-    qdate_srv:get_timezone(Key).
-
-
-ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
-    case get_timezone(Key) of
-        undefined -> throw({timezone_key_not_found,Key});
-        ToTZ -> ToTZ
-    end;
-ensure_timezone(TZ) when is_binary(TZ) ->
-    binary_to_list(TZ);
-ensure_timezone(TZ) when is_list(TZ) ->
-    TZ.
-
-
-clear_timezone() ->
-    qdate_srv:clear_timezone().
-
-clear_timezone(Key) ->
-    qdate_srv:clear_timezone(Key).
-
-
-to_unixtime(Unixtime) when is_integer(Unixtime) ->
-    Unixtime;
-to_unixtime({MegaSecs,Secs,_}) ->
-    MegaSecs*1000000 + Secs;
-to_unixtime(ToParse) ->
-    %% We want to treat all unixtimes as GMT
-    Date = to_date("GMT", ToParse),
-    calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
-
-unixtime() ->
-    to_unixtime(os:timestamp()).
-
-to_now(Now = {_,_,_}) ->
-    Now;
-to_now(ToParse) ->
-    Unixtime = to_unixtime(ToParse),
-    unixtime_to_now(Unixtime).
-
-
-register_parser(Key, Parser) when is_function(Parser,1) ->
-    qdate_srv:register_parser(Key,Parser).
-
-register_parser(Parser) when is_function(Parser,1) ->
-    qdate_srv:register_parser(Parser).
-
-deregister_parser(Key) ->
-    qdate_srv:deregister_parser(Key).
-
-deregister_parsers() ->
-    qdate_srv:deregister_parsers().
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Register Formats  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 register_format(Key, Format) ->
     qdate_srv:register_format(Key, Format).
 
 deregister_format(Key) ->
     qdate_srv:deregister_format(Key).
+
 
 
 unixtime_to_now(T) when is_integer(T) ->
@@ -389,8 +439,10 @@ floor(N) when N < 0 ->
         true -> Int-1
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  TESTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% TESTS
 -include_lib("eunit/include/eunit.hrl").
 
 %% emulates as if a forum-type website has a Site tz, and a user-specified tz
@@ -408,6 +460,7 @@ tz_test_() ->
         fun(SetupData) ->
             {inorder,[
                 simple_test(SetupData),
+                compare_test(SetupData),
                 tz_tests(SetupData),
                 test_process_die(SetupData),
                 parser_format_test(SetupData),
@@ -494,6 +547,23 @@ simple_test(_) ->
         ?_assertEqual(to_unixtime("2012-01-01 12:00pm CST"), to_unixtime("2012-01-01 10:00am PST")),
         ?_assertEqual({{2012,12,31},{18,15,15}},to_date("Dec 31, 2012 6:15:15pm")),
         ?_assertEqual({{2013,1,1},{0,15,15}},to_date("GMT", "December 31, 2012 6:15:15pm CST"))
+    ]}.
+
+
+compare_test(_) ->
+    {inorder,[
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,0}},'=',"Sep 10th, 2013 12:00am")),
+        ?_assertEqual(true, compare("9/10/2013 1am EST",'==',"Sep 10th, 2013 12:00:00am CST")),
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,0}},'=<',"Sep 10th, 2013 12:00am")),
+        ?_assertEqual(false, compare({{2013,9,10},{0,0,1}},'=',"Sep 10th, 2013 12:00am")),
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'=/=',"Sep 10th, 2013 12:00am")),
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'>',"Sep 10th, 2013 12:00am")),
+        ?_assertEqual(false, compare({{2013,9,10},{0,0,1}},'<',"Sep 10th, 2013 12:00am")),
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'<',"Sep 10th, 2013 12:00:02am")),
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'<',"Sep 10th, 2013 12:02am")),
+        ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'<',"Sep 10th, 2013 1am")),
+        ?_assertEqual(true, compare({{2013,9,9},{23,59,59}},'<',"Sep 10th, 2013 12am")),
+        ?_assertEqual(false, compare({{2013,9,9},{23,59,59}},'>',"Sep 10th, 2013 12am"))
     ]}.
 
 parser_format_test(_) ->
