@@ -118,7 +118,9 @@ will infer the timezone in the following order.
     + `'=<'` or `'<='` - `A` is before or equal to `B`
     + `'>='` or `'=>'` - `A` is after or equal to `B`
 
-**Note:** These functions will properly compare times with different timezones
+**Note 1:** `Operator` must be an atom.
+
+**Note 2:** These functions will properly compare times with different timezones
 (for example: `compare("12am CST",'==',"1am EST")` will properly return true)
 
 ### Timezone Functions
