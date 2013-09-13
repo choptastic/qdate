@@ -101,6 +101,26 @@ will infer the timezone in the following order.
   + `format/1` - Same as `to_string/1`
   + `format/2` - Same as `to_string/2`
 
+### Date and Time Comparison
+
+`qdate` provides a few convenience functions for performing date comparisons.
+
+  + `compare(A, B)` - Like C's `strcmp`, returns:
+    + `0`: `A` and `B` are exactly the same.
+    + `-1`: `A` is less than (before) `B`.
+    + `1`: `A` is greater than (after) `B`.
+  + `compare(A, Operator, B)` - Operator is an infix comparison operator, and
+    the function will return true if:
+    + `'='`, or `'=='` - `A` is the same time as `B`
+    + `'/='`, or `'=/='` or `'!='` - `A` is not the same time as `B`
+    + `'<'` - `A` is before `B`
+    + `'>'` - `A` is after `B`
+    + `'=<'` or `'<='` - `A` is before or equal to `B`
+    + `'>='` or `'=>'` - `A` is after or equal to `B`
+
+**Note:** These functions will properly compare times with different timezones
+(for example: `compare("12am CST",'==',"1am EST")` will properly return true)
+
 ### Timezone Functions
 
   + `set_timezone(Key, TZ)` - Set the timezone to TZ for the key `Key`
