@@ -540,6 +540,10 @@ A few shoutouts to [Dale Harvey](http://github.com/daleharvey) and the
 package. Without the hard work of all involved in those projects, `qdate` would
 not exist.
 
+### Thanks to Additional Contributors
+
++ [Mark Allen](https://github.com/mrallen1)
+
 ## TODO
 
 + Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
