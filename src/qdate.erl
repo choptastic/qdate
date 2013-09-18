@@ -343,9 +343,14 @@ date_tz_to_tz(Date, FromTZ, ToTZ) ->
     ActualToTZ = ensure_timezone(ToTZ), 
     localtime:local_to_local(Date,FromTZ,ActualToTZ).
 
+set_timezone(TZ) when is_binary(TZ) ->
+    set_timezone(binary_to_list(TZ));
 set_timezone(TZ) ->
     qdate_srv:set_timezone(TZ).
 
+
+set_timezone(Key,TZ) when is_binary(TZ) ->
+    set_timezone(Key, binary_to_list(TZ));
 set_timezone(Key,TZ) ->
     qdate_srv:set_timezone(Key, TZ).
 
@@ -447,7 +452,7 @@ floor(N) when N < 0 ->
 
 %% emulates as if a forum-type website has a Site tz, and a user-specified tz
 -define(SITE_TZ,"PST").
--define(USER_TZ,"CST").
+-define(USER_TZ,<<"CST">>).
 -define(SELF_TZ,"EST"). %% Self will be the pid of the current running process
 -define(SITE_KEY,test_site_key).
 -define(USER_KEY,test_user_key).
@@ -486,9 +491,11 @@ test_deterministic_parser(_) ->
 
 tz_tests(_) ->
     {inorder,[
+        ?_assertEqual(ok,set_timezone(<<"Europe/Moscow">>)),
+        ?_assertEqual("Europe/Moscow", get_timezone()),
         ?_assertEqual(ok,set_timezone(?SELF_TZ)),
         ?_assertEqual(?SELF_TZ,get_timezone()),
-        ?_assertEqual(?USER_TZ,get_timezone(?USER_KEY)),
+        ?_assertEqual("CST",get_timezone(?USER_KEY)),
         ?_assertEqual(?SITE_TZ,get_timezone(?SITE_KEY)),
         ?_assertEqual({{2013,3,7},{0,0,0}}, to_date(?USER_KEY,"3/7/2013 1:00am EST")),
         ?_assertEqual({{2013,3,7},{0,0,0}}, to_date(?SITE_KEY,"3/7/2013 3:00am EST")),
