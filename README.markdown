@@ -546,9 +546,7 @@ not exist.
 
 ## Changelog
 
-[See the Changelog on
-Github][https://github.com/choptastic/qdate/blob/master/CHANGELOG.markdown] or
-just look in CHANGELOG.markdown
+See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGELOG.markdown)
 
 ## TODO
 
