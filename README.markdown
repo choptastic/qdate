@@ -544,6 +544,12 @@ not exist.
 
 + [Mark Allen](https://github.com/mrallen1)
 
+## Changelog
+
+[See the Changelog on
+Github][https://github.com/choptastic/qdate/blob/master/CHANGELOG.markdown] or
+just look in CHANGELOG.markdown
+
 ## TODO
 
 + Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
