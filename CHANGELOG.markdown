@@ -1,3 +1,8 @@
+## 0.3.0 (In development)
+
+* Add Timezone/Daylight Saving Disambiguation
+* Add the `auto` timezone shortcut
+
 ## 0.2.1
 
 * Fix allowing timezone names to be binary

@@ -65,6 +65,10 @@ T, Z, r, and c), `qdate` will handle them for us.
   + `to_now(Date)` - converts any date/time format to Erlang now format.
   + `to_unixtime(Date)` - converts any date/time format to a unixtime integer
 
+A **ToTimezone** value of the atom `auto` will automatically determine the
+timezone. For example, `to_date(Date, auto)` is exactly the same as
+`to_date(Date)`
+
 **A Note About Argument Order**: In all cases, `ToTimezone` is optional and if
 omitted, will be determined as described below in "Understanding Timezone
 Determining and Conversion". If `ToTimezone` is specified, it will always be
@@ -93,6 +97,80 @@ will infer the timezone in the following order.
     application variable `default_timezone`.
   + If no timezone is specified by either of the above, `qdate` assumes "GMT"
     for all dates.
+  + A timezone value of `auto` will act as if no timezone is specified.
+
+#### Disambiguating Ambiguous Timezone Conversions
+
+Sometimes, when youre converting a datetime from one timezone to another, there
+are potentially two different results if the conversion happens to land on in a
+timezone that's in the middle of a Daylight Saving conversion.  For example,
+converting "11-Nov-2013 1:00:am" in "America/New York" to "GMT" could be both
+"5am" and "6am" in GMT, since "1am EST". This is a side effect of the
+"intelligence" of `qdate` - `qdate` would notice that 1am in New York is EST,
+and should be converted to "1am EST", and then do the conversion from "1am EST"
+to "GMT".  This can lead to confusion.
+
+Further, since `qdate` attempts to be "smart" about mistakenly entered
+timezones (ie, if you entered "2013-01-01 EDT", `qdate` knows that "EDT"
+(Eastern Daylight Time) doesn't apply to January first, so it *assumes* you
+meant "EST".
+
+**THE SOLUTION** to this tangled mess that we call Daylight Saving Time is to
+provide an option to disambiguate if you so desire. By default disambiguation
+is disabled, and `qdate` will just guess as to it's best choice. But if you so
+desire, you can make sure qdate does *both* conversions, and returns both.
+
+You can do this by passing a `Disambiguation` argument to `to_string` or
+`to_date`. `Disambiguation` can be an atom of the values:
+
+  + `prefer_standard` *(Default Behavior)*: If an ambiguous result occurs,
+    qdate will return the date in standard time rather than daylight time.
+  + `prefer_daylight`: If an ambiguous result occurs, qdate will return the
+    preferred daylight time.
+  + `both`: If an ambiguous result occurs, `qdate` will return the tuple:
+    `{ambiguous, DateStandard, DateDaylight}`, where `DateStandard` is the date
+	in Standard Time, and `DateDaylight` is the date in Daylight Saving Time.
+
+So the two more helper functions are:
+
+  + `to_date(ToTimezone, Disambiguate, Date)`
+  + `to_string(FormatString, ToTimezone, Disambiguate, Date)`
+
+Examples:
+
+```erlang
+1> qdate:set_timezone("GMT").
+ok
+
+%% Here, converting GMT 2013-11-03 6AM to America/New York yields an ambiguous
+%% result
+2> qdate:to_date("America/New York", both, {{2013,11,3},{6,0,0}}).
+{ambiguous,{{2013,11,3},{1,0,0}},{{2013,11,3},{2,0,0}}}
+
+%% Let's just use daylight time
+3> qdate:to_date("America/New York", prefer_daylight, {{2013,11,3},{6,0,0}}).
+{{2013,11,3},{2,0,0}}
+
+%% Let's just use standard time (the default behavior)
+4> qdate:to_date("America/New York", prefer_standard, {{2013,11,3},{6,0,0}}).
+{{2013,11,3},{1,0,0}}
+
+5> qdate:set_timezone("America/New York").
+ok
+
+%% Switching from 1AM Eastern Time to GMT yields a potentially ambiguous result
+6> qdate:to_date("GMT", both, {{2013,11,3},{1,0,0}}).
+{ambiguous,{{2013,11,3},{6,0,0}},{{2013,11,3},{5,0,0}}}
+
+%% Use daylight time for conversion
+7> qdate:to_date("GMT", prefer_daylight, {{2013,11,3},{1,0,0}}).
+{{2013,11,3},{5,0,0}}
+
+%% Here we demonstrated that even if we ask for "both", if there is no
+%% ambiguity, the plain date is returned
+8> qdate:to_date("GMT", both, {{2013,11,3},{5,0,0}}).
+{{2013,11,3},{10,0,0}}
+```
 
 #### Conversion Functions provided for API compatibility with `ec_date`
 
@@ -543,6 +621,7 @@ not exist.
 ### Thanks to Additional Contributors
 
 + [Mark Allen](https://github.com/mrallen1)
++ [Christopher Phillips](http://github.com/lostcolony)
 
 ## Changelog
 

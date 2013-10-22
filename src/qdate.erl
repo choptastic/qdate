@@ -13,8 +13,10 @@
     to_string/1,
     to_string/2,
     to_string/3,
+    to_string/4,
     to_date/1,
     to_date/2,
+    to_date/3,
     to_now/1,
     to_unixtime/1,
     unixtime/0
@@ -67,6 +69,8 @@
                     end).
 
 -define(DETERMINE_TZ, determine_timezone()).
+-define(DEFAULT_DISAMBIG, prefer_standard).
+-define(else, true).
 
 start() ->
     application:start(qdate).
@@ -74,22 +78,24 @@ start() ->
 stop() ->
     application:stop(qdate).
 
-
 to_string(Format) ->
     to_string(Format, os:timestamp()).
 
 to_string(Format, Date) ->
     to_string(Format, ?DETERMINE_TZ, Date).
 
-to_string(FormatKey, ToTZ, Date) when is_atom(FormatKey) orelse is_tuple(FormatKey) ->
+to_string(Format, ToTZ, Date) ->
+    to_string(Format, ToTZ, ?DEFAULT_DISAMBIG, Date).
+
+to_string(FormatKey, ToTZ, Disambiguate, Date) when is_atom(FormatKey) orelse is_tuple(FormatKey) ->
     Format = case qdate_srv:get_format(FormatKey) of
         undefined -> throw({undefined_format_key,FormatKey});
         F -> F
     end,
-    to_string(Format, ToTZ, Date);
-to_string(Format, ToTZ, Date) when is_binary(Format) ->
-    list_to_binary(to_string(binary_to_list(Format), ToTZ, Date));
-to_string(Format, ToTZ, Date) when is_list(Format) ->
+    to_string(Format, ToTZ, Disambiguate, Date);
+to_string(Format, ToTZ, Disambiguate, Date) when is_binary(Format) ->
+    list_to_binary(to_string(binary_to_list(Format), ToTZ, Disambiguate, Date));
+to_string(Format, ToTZ, Disambiguate, Date) when is_list(Format) ->
     %% it may seem odd that we're ensuring it here, and then again
     %% as one of the last steps of the to_date process, but we need
     %% the actual name for the strings for the PHP "T" and "e", so
@@ -97,46 +103,73 @@ to_string(Format, ToTZ, Date) when is_list(Format) ->
     %% Then we can pass it on to to_date as well. That way we don't have
     %% to do it twice, since it's already ensured.
     ActualToTZ = ensure_timezone(ToTZ),
-    to_string_worker(Format, ActualToTZ, to_date(ActualToTZ, Date)).
+    case to_date(ActualToTZ, Disambiguate, Date) of
+        {ambiguous, Standard, Daylight} ->
+            {ambiguous,
+                to_string_worker(Format, ActualToTZ, prefer_standard, Standard),
+                to_string_worker(Format, ActualToTZ, prefer_daylight, Daylight)};
+        ActualDate ->
+            case tz_name(ActualDate,Disambiguate, ActualToTZ) of
+                {ambiguous,_,_} ->
+                    {ambiguous,
+                        to_string_worker(Format, ActualToTZ, prefer_standard, ActualDate),
+                        to_string_worker(Format, ActualToTZ, prefer_daylight, ActualDate)};
+                _ ->
+                    to_string_worker(Format, ActualToTZ, Disambiguate, ActualDate)
+            end
+    end.
+            
+        
 
-to_string_worker([], _, _) ->
+to_string_worker([], _, _, _) ->
     "";
-to_string_worker([$e|RestFormat], ToTZ, Date) ->
-    ToTZ ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([$I|RestFormat], ToTZ, Date) ->
+to_string_worker([$e|RestFormat], ToTZ, Disamb, Date) ->
+    ToTZ ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([$I|RestFormat], ToTZ, Disamb, Date) ->
     I = case localtime_dst:check(Date, ToTZ) of
         is_in_dst       -> "1";
         is_not_in_dst   -> "0";
         ambiguous_time  -> "?"
     end,
-    I ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([H | RestFormat], ToTZ, Date) when H==$O orelse H==$P ->
-    Shift = get_timezone_shift(ToTZ, Date),
+    I ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([H | RestFormat], ToTZ, Disamb, Date) when H==$O orelse H==$P ->
+    Shift = get_timezone_shift(ToTZ, Disamb, Date),
     Separator = case H of
         $O -> "";
         $P -> ":"
     end,
-    format_shift(Shift,Separator) ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([$T | RestFormat], ToTZ, Date) ->
-    {ShortName,_} = localtime:tz_name(Date, ToTZ),
-    ShortName ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([$Z | RestFormat], ToTZ, Date) ->
-    {Sign, Hours, Mins} = get_timezone_shift(ToTZ, Date),
+    format_shift(Shift,Separator) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([$T | RestFormat], ToTZ, Disamb, Date) ->
+    ShortName = tz_name(Date, Disamb, ToTZ),
+    ShortName ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([$Z | RestFormat], ToTZ, Disamb, Date) ->
+    {Sign, Hours, Mins} = get_timezone_shift(ToTZ, Disamb, Date),
     Seconds = (Hours * 3600) + (Mins * 60),
-    atom_to_list(Sign)  ++ integer_to_list(Seconds) ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([$r | RestFormat], ToTZ, Date) ->
+    atom_to_list(Sign)  ++ integer_to_list(Seconds) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([$r | RestFormat], ToTZ, Disamb, Date) ->
     NewFormat = "D, d M Y H:i:s O",
-    to_string_worker(NewFormat, ToTZ, Date) ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([$c | RestFormat], ToTZ, Date) ->
+    to_string_worker(NewFormat, ToTZ, Disamb, Date) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([$c | RestFormat], ToTZ, Disamb, Date) ->
     Format1 = "Y-m-d",
     Format2 = "H:i:sP",
-    to_string_worker(Format1, ToTZ, Date) 
+    to_string_worker(Format1, ToTZ, Disamb, Date) 
             ++ "T" 
-            ++ to_string_worker(Format2, ToTZ, Date) 
-            ++ to_string_worker(RestFormat, ToTZ, Date);
-to_string_worker([H | RestFormat], ToTZ, Date) ->
-    ec_date:format([H], Date) ++ to_string_worker(RestFormat, ToTZ, Date).
+            ++ to_string_worker(Format2, ToTZ, Disamb, Date) 
+            ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
+to_string_worker([H | RestFormat], ToTZ, Disamb, Date) ->
+    ec_date:format([H], Date) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date).
 
+tz_name(Date, Disambiguate, ToTZ) ->
+    case localtime:tz_name(Date, ToTZ) of
+        {ShortName, _} when is_list(ShortName) ->
+            ShortName;
+        {{ShortStandard,_},{ShortDST,_}} -> 
+            case Disambiguate of
+                prefer_standard -> ShortStandard;
+                prefer_daylight -> ShortDST;
+                both            -> {ambiguous, ShortStandard, ShortDST}
+            end
+    end.
         
 format_shift({Sign,Hours,Mins},Separator) ->
     SignStr = atom_to_list(Sign),
@@ -166,11 +199,14 @@ nparse(String) ->
 to_date(RawDate) ->
     to_date(?DETERMINE_TZ, RawDate).
 
-to_date(ToTZ, RawDate) when is_binary(RawDate) ->
-    to_date(ToTZ, binary_to_list(RawDate));
-to_date(ToTZ, RawDate) when is_binary(ToTZ) ->
-    to_date(binary_to_list(ToTZ), RawDate);
-to_date(ToTZ, RawDate)  ->
+to_date(ToTZ, RawDate) ->
+    to_date(ToTZ, ?DEFAULT_DISAMBIG, RawDate).
+
+to_date(ToTZ, Disambiguate, RawDate) when is_binary(RawDate) ->
+    to_date(ToTZ, Disambiguate, binary_to_list(RawDate));
+to_date(ToTZ, Disambiguate, RawDate) when is_binary(ToTZ) ->
+    to_date(binary_to_list(ToTZ), Disambiguate, RawDate);
+to_date(ToTZ, Disambiguate, RawDate)  ->
     {ExtractedDate, ExtractedTZ} = extract_timezone(RawDate),
     {RawDate3, FromTZ} = case try_registered_parsers(RawDate) of
         undefined ->
@@ -182,12 +218,12 @@ to_date(ToTZ, RawDate)  ->
     end,    
     try raw_to_date(RawDate3) of
         D={{_,_,_},{_,_,_}} ->
-            date_tz_to_tz(D, FromTZ, ToTZ)
+            date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ)
     catch
         _:_ ->
             case raw_to_date(RawDate) of
                 D2={{_,_,_},{_,_,_}} ->
-                    date_tz_to_tz(D2, ?DETERMINE_TZ, ToTZ)
+                    date_tz_to_tz(D2, Disambiguate, ?DETERMINE_TZ, ToTZ)
             end
     end.
 
@@ -270,11 +306,12 @@ compare(A, Op, B) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Timezone Stuff   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-get_timezone_shift(TZ, Date) ->
+get_timezone_shift(TZ, Disambiguate, Date) ->
     case localtime:tz_shift(Date, TZ) of
         unable_to_detect -> {error,unable_to_detect};
         {error,T} -> {error,T};
-        {Sh, _DstSh} -> Sh;
+        {Sh, _} when Disambiguate==prefer_standard -> Sh;
+        {_, Sh} when Disambiguate==prefer_daylight -> Sh;
         Sh -> Sh
     end.
 
@@ -336,12 +373,29 @@ determine_timezone() ->
 %% If FromTZ is an integer, then it's an integer that represents the number of minutes
 %% relative to GMT. So we convert the date to GMT based on that number, then we can
 %% do the other timezone conversion.
-date_tz_to_tz(Date, FromTZ, ToTZ) when is_integer(FromTZ) ->
+date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) when is_integer(FromTZ) ->
     NewDate = localtime:adjust_datetime(Date, FromTZ),
-    date_tz_to_tz(NewDate, "GMT", ToTZ);
-date_tz_to_tz(Date, FromTZ, ToTZ) ->
+    date_tz_to_tz(NewDate, Disambiguate, "GMT", ToTZ);
+date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) ->
     ActualToTZ = ensure_timezone(ToTZ), 
-    localtime:local_to_local(Date,FromTZ,ActualToTZ).
+    case Disambiguate of
+        prefer_standard ->
+            localtime:local_to_local(Date, FromTZ, ActualToTZ);
+        prefer_daylight ->
+            localtime:local_to_local_dst(Date, FromTZ, ActualToTZ);
+        both ->
+            date_tz_to_tz_both(Date, FromTZ, ToTZ)
+    end.
+
+date_tz_to_tz_both(Date, FromTZ, ToTZ) ->
+    Standard = localtime:local_to_local(Date, FromTZ, ToTZ),
+    Daylight = localtime:local_to_local_dst(Date, FromTZ, ToTZ),
+    if
+        Standard=:=Daylight ->
+            Standard;
+        ?else -> 
+            {ambiguous, Standard, Daylight}
+    end.           
 
 set_timezone(TZ) when is_binary(TZ) ->
     set_timezone(binary_to_list(TZ));
@@ -360,6 +414,8 @@ get_timezone() ->
 get_timezone(Key) ->
     qdate_srv:get_timezone(Key).
 
+ensure_timezone(auto) ->
+    ?DETERMINE_TZ;
 ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
     case get_timezone(Key) of
         undefined -> throw({timezone_key_not_found,Key});
@@ -469,7 +525,8 @@ tz_test_() ->
                 tz_tests(SetupData),
                 test_process_die(SetupData),
                 parser_format_test(SetupData),
-                test_deterministic_parser(SetupData)
+                test_deterministic_parser(SetupData),
+                test_disambiguation(SetupData)
             ]}
         end
     }.
@@ -488,6 +545,21 @@ test_deterministic_parser(_) ->
         ?_assertEqual({{1970,1,1}, {7,0,0}}, qdate:to_date("7am")),
         ?_assertEqual({{2012,5,10}, {0,0,0}}, qdate:to_date("2012-5-10"))
     ]}.
+
+test_disambiguation(_) ->
+    {inorder, [
+        ?_assertEqual(ok, set_timezone("America/New York")),
+        ?_assertEqual({ambiguous, {{2013,11,3},{6,0,0}}, {{2013,11,3},{5,0,0}}}, qdate:to_date("GMT",both,{{2013,11,3},{1,0,0}})),
+        ?_assertEqual({{2013,11,3},{6,0,0}}, qdate:to_date("GMT",prefer_standard,{{2013,11,3},{1,0,0}})),
+        ?_assertEqual({{2013,11,3},{5,0,0}}, qdate:to_date("GMT",prefer_daylight,{{2013,11,3},{1,0,0}})),
+        ?_assertEqual({ambiguous, "GMT","GMT"}, qdate:to_string("T", "GMT", both, {{2013,11,3},{1,0,0}})),
+        ?_assertEqual({ambiguous, "EST","EDT"}, qdate:to_string("T", auto, both, {{2013,11,3},{1,0,0}})),
+        ?_assertEqual(ok, set_timezone("GMT")),
+        ?_assertEqual({ambiguous, {{2013,11,3},{1,0,0}}, {{2013,11,3},{2,0,0}}}, qdate:to_date("America/New York", both, {{2013,11,3},{6,0,0}})),
+        ?_assertEqual({{2013,11,3},{2,0,0}}, qdate:to_date("America/New York", prefer_daylight, {{2013,11,3},{6,0,0}})),
+        ?_assertEqual({{2013,11,3},{1,0,0}}, qdate:to_date("America/New York", prefer_standard, {{2013,11,3},{6,0,0}}))
+   ]}.
+
 
 tz_tests(_) ->
     {inorder,[
