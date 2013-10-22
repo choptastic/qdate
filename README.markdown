@@ -72,7 +72,8 @@ timezone. For example, `to_date(Date, auto)` is exactly the same as
 **A Note About Argument Order**: In all cases, `ToTimezone` is optional and if
 omitted, will be determined as described below in "Understanding Timezone
 Determining and Conversion". If `ToTimezone` is specified, it will always be
-immediately left of the `Date` argument. `Date` will always be the last
+immediately left of the `Disambiguate` argument (if it's specified), which is
+always immediately left of `Date` argument. `Date` will always be the last
 argument to any of the conversion and formatting functions.
 
 #### Understanding Timezone Determining and Conversions
@@ -120,8 +121,9 @@ provide an option to disambiguate if you so desire. By default disambiguation
 is disabled, and `qdate` will just guess as to it's best choice. But if you so
 desire, you can make sure qdate does *both* conversions, and returns both.
 
-You can do this by passing a `Disambiguation` argument to `to_string` or
-`to_date`. `Disambiguation` can be an atom of the values:
+You can do this by passing a `Disambiguation` argument to `to_string`,
+`to_date`, `to_unixtime`, and `to_now`. `Disambiguation` can be an atom of the
+values:
 
   + `prefer_standard` *(Default Behavior)*: If an ambiguous result occurs,
     qdate will return the date in standard time rather than daylight time.
@@ -131,10 +133,12 @@ You can do this by passing a `Disambiguation` argument to `to_string` or
     `{ambiguous, DateStandard, DateDaylight}`, where `DateStandard` is the date
 	in Standard Time, and `DateDaylight` is the date in Daylight Saving Time.
 
-So the two more helper functions are:
+So the expanded conversions functions are:
 
   + `to_date(ToTimezone, Disambiguate, Date)`
   + `to_string(FormatString, ToTimezone, Disambiguate, Date)`
+  + `to_unixtime(Disambiguate, Date)`
+  + `to_now(Disambiguate, Date)`
 
 Examples:
 

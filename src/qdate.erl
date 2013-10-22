@@ -18,7 +18,9 @@
     to_date/2,
     to_date/3,
     to_now/1,
+    to_now/2,
     to_unixtime/1,
+    to_unixtime/2,
     unixtime/0
 ]).
 
@@ -250,24 +252,41 @@ get_deterministic_datetime() ->
         {ok, Val}           -> throw({invalid_env_var, {qdate, deterministic_parsing, Val}})
     end.
 
+to_unixtime(Date) ->
+    to_unixtime(?DEFAULT_DISAMBIG, Date).
 
-to_unixtime(Unixtime) when is_integer(Unixtime) ->
+to_unixtime(_, Unixtime) when is_integer(Unixtime) ->
     Unixtime;
-to_unixtime({MegaSecs,Secs,_}) ->
+to_unixtime(_, {MegaSecs,Secs,_}) ->
     MegaSecs*1000000 + Secs;
-to_unixtime(ToParse) ->
+to_unixtime(Disamb, ToParse) ->
     %% We want to treat all unixtimes as GMT
-    Date = to_date("GMT", ToParse),
-    calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE.
+    case to_date("GMT", Disamb, ToParse) of
+        {ambiguous, Standard, Daylight} ->
+            {ambiguous,
+                calendar:datetime_to_gregorian_seconds(Standard) - ?UNIXTIME_BASE,
+                calendar:datetime_to_gregorian_seconds(Daylight) - ?UNIXTIME_BASE};
+        Date ->
+            calendar:datetime_to_gregorian_seconds(Date) - ?UNIXTIME_BASE
+    end.
 
 unixtime() ->
     to_unixtime(os:timestamp()).
 
-to_now(Now = {_,_,_}) ->
+to_now(Date) ->
+    to_now(?DEFAULT_DISAMBIG, Date).
+
+to_now(_, Now = {_,_,_}) ->
     Now;
-to_now(ToParse) ->
-    Unixtime = to_unixtime(ToParse),
-    unixtime_to_now(Unixtime).
+to_now(Disamb, ToParse) ->
+    case to_unixtime(Disamb, ToParse) of
+        {ambiguous, Standard, Daylight} ->
+            {ambiguous, 
+                unixtime_to_now(Standard),
+                unixtime_to_now(Daylight)};
+        Unixtime ->
+            unixtime_to_now(Unixtime)
+    end.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
