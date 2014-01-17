@@ -125,6 +125,8 @@ to_string(Format, ToTZ, Disambiguate, Date) when is_list(Format) ->
 
 to_string_worker([], _, _, _) ->
     "";
+to_string_worker([$\\,H|RestFormat], ToTZ, Disamb, Date) ->
+    [H|to_string_worker(RestFormat, ToTZ, Disamb, Date)];
 to_string_worker([$e|RestFormat], ToTZ, Disamb, Date) ->
     ToTZ ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([$I|RestFormat], ToTZ, Disamb, Date) ->
