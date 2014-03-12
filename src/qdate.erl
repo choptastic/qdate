@@ -653,7 +653,7 @@ simple_test(_) ->
 compare_test(_) ->
     {inorder,[
         ?_assertEqual(true, compare({{2013,9,10},{0,0,0}},'=',"Sep 10th, 2013 12:00am")),
-        ?_assertEqual(true, compare("9/10/2013 1am EST",'==',"Sep 10th, 2013 12:00:00am CST")),
+        ?_assertEqual(true, compare("9/10/2013 1am EDT",'==',"Sep 10th, 2013 12:00:00am CDT")),
         ?_assertEqual(true, compare({{2013,9,10},{0,0,0}},'=<',"Sep 10th, 2013 12:00am")),
         ?_assertEqual(false, compare({{2013,9,10},{0,0,1}},'=',"Sep 10th, 2013 12:00am")),
         ?_assertEqual(true, compare({{2013,9,10},{0,0,1}},'=/=',"Sep 10th, 2013 12:00am")),
