@@ -1,7 +1,8 @@
-## 0.3.0 (In development)
+## 0.3.0
 
 * Add Timezone/Daylight Saving Disambiguation
 * Add the `auto` timezone shortcut
+* Fix rebar.config to allow for compilation on Erlang 17
 
 ## 0.2.1
 
