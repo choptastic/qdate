@@ -356,11 +356,22 @@ add_weeks(Weeks, Date) ->
 
 add_months(Months, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
-    to_unixtime(fix_maybe_improper_date({{Y, M+Months, D}, Time})).
+    {TargetYear, TargetMonth} = fix_year_month({Y,M+Months}),
+    DaysInMonth = calendar:last_day_of_the_month(TargetYear, TargetMonth),
+    NewD = lists:min([DaysInMonth, D]),
+    to_unixtime(fix_maybe_improper_date({{Y, M+Months, NewD}, Time})).
 
 add_years(Years, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
-    to_unixtime(fix_maybe_improper_date({{Y+Years, M, D}, Time})).
+    TargetYear = Y+Years,
+    NewD = case M of
+        2 -> 
+            DaysInMonth = calendar:last_day_of_the_month(TargetYear, M),
+            lists:min([DaysInMonth, D]);
+        _ ->
+            D
+    end,
+    to_unixtime({{Y+Years, M, NewD}, Time}).
 
 add_date({{AddY, AddM, AddD}, {AddH, AddI, AddS}}, Date) ->
     {{Y, M, D}, {H, I, S}} = to_date(Date),
@@ -377,12 +388,20 @@ fix_maybe_improper_date({Date0, Time}) ->
     Date = fmid(Date0),
     {Date, Time}.
 
-fmid({Y, M, D}) when M > 12 ->
+fix_year_month({Y, M}) when M > 12 ->
     YearsOver = M div 12,
-    fmid({Y+YearsOver, M-(YearsOver*12), D});
-fmid({Y, M, D}) when M < 1 ->
-    YearsUnder = abs(M-1) div 12 + 1,
-    fmid({Y-YearsUnder, M+(YearsUnder*12), D});
+    {Y + YearsOver, M-(YearsOver*12)};
+fix_year_month({Y, M}) when M < 1 ->
+    YearsUnder = (abs(M-1) div 12) + 1,
+    {Y - YearsUnder, M+(YearsUnder*12)};
+fix_year_month({Y, M}) ->
+    {Y, M}.
+    
+
+fmid({Y, M, D}) when M > 12;
+                     M < 1 ->
+    {NewY, NewM} = fix_year_month({Y, M}),
+    fmid({NewY, NewM, D});
 
 fmid({Y, M, D}) when (D > 30 andalso (
                         M=:=4 orelse 
@@ -808,11 +827,14 @@ arith_tests(_) ->
         ?_assertEqual({{2015,1,1},{23,59,59}}, to_date(add_days(1, {{2014,12,31},{23,59,59}}))),
         ?_assertEqual({{2015,1,7},{23,59,59}}, to_date(add_weeks(1, {{2014,12,31},{23,59,59}}))),
         ?_assertEqual({{2015,1,31},{23,59,59}}, to_date(add_months(1, {{2014,12,31},{23,59,59}}))),
-        %% currently fails the following test. Passing it will require improved logic
-        ?_assertEqual({{2015,3,1},{0,0,0}}, to_date(add_months(2, {{2014,12,31},{0,0,0}}))),
+        ?_assertEqual({{2015,2,28},{0,0,0}}, to_date(add_months(2, {{2014,12,31},{0,0,0}}))),
+        ?_assertEqual({{2016,2,28},{0,0,0}}, to_date(add_years(1, {{2015,2,28},{0,0,0}}))),
+        ?_assertEqual({{2014,2,28},{0,0,0}}, to_date(add_months(-24, {{2016,2,29},{0,0,0}}))),
+        ?_assertEqual({{2012,2,29},{0,0,0}}, to_date(add_months(-48, {{2016,2,29},{0,0,0}}))),
+        ?_assertEqual({{2016,2,29},{0,0,0}}, to_date(add_months(-1, {{2016,3,31},{0,0,0}}))),
+        ?_assertEqual({{2017,2,28},{0,0,0}}, to_date(add_years(1, {{2016,2,29},{0,0,0}}))),
         ?_assertEqual({{2015,3,1},{0,0,0}}, to_date(add_days(1, {{2015,2,28},{0,0,0}}))),
-        ?_assertEqual({{2015,3,3},{0,0,0}}, to_date(add_days(3, {{2015,2,28},{0,0,0}}))),
-        ?_assertEqual({{2017,3,1},{0,0,0}}, to_date(add_years(1, {{2016,2,29},{0,0,0}})))
+        ?_assertEqual({{2015,3,3},{0,0,0}}, to_date(add_days(3, {{2015,2,28},{0,0,0}})))
     ]}.
 
         
