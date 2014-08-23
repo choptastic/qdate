@@ -30,6 +30,17 @@
 ]).
 
 -export([
+    add_seconds/2,
+    add_minutes/2,
+    add_hours/2,
+    add_days/2,
+    add_weeks/2,
+    add_months/2,
+    add_years/2,
+    add_date/2
+]).
+
+-export([
     register_parser/2,
     register_parser/1,
     deregister_parser/1,
@@ -322,6 +333,82 @@ compare(A, Op, B) ->
         '>='    -> Comp =:= 1 orelse Comp =:= 0;
         '=>'    -> Comp =:= 1 orelse Comp =:= 0
     end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Date Math       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+add_seconds(Seconds, Date) ->
+    to_unixtime(Date) + Seconds.
+
+add_minutes(Minutes, Date) ->
+    add_seconds(Minutes * 60, Date).
+
+add_hours(Hours, Date) ->
+    add_seconds(Hours * 3600, Date).
+
+add_days(Days, Date0) ->
+    {{Y,M,D},Time} = to_date(Date0),
+    to_unixtime(fix_maybe_improper_date({{Y, M, D+Days}, Time})). 
+
+add_weeks(Weeks, Date) ->
+    add_days(Weeks * 7, Date).
+
+add_months(Months, Date) ->
+    {{Y,M,D}, Time} = to_date(Date),
+    to_unixtime(fix_maybe_improper_date({{Y, M+Months, D}, Time})).
+
+add_years(Years, Date) ->
+    {{Y,M,D}, Time} = to_date(Date),
+    to_unixtime(fix_maybe_improper_date({{Y+Years, M, D}, Time})).
+
+add_date({{AddY, AddM, AddD}, {AddH, AddI, AddS}}, Date) ->
+    {{Y, M, D}, {H, I, S}} = to_date(Date),
+    Date1 = fix_maybe_improper_date({{Y+AddY, M+AddM, D+AddD}, {H, I, S}}),
+    Date2 = to_unixtime(Date1),
+    Date2 + AddS + (AddI*60) + (AddH*3600).
+
+
+-define(IS_LEAP_YEAR(Y), (Y rem 4 =:= 0 andalso
+                             (Y rem 100 =/= 0
+                              orelse Y rem 400 =:= 0))).
+
+fix_maybe_improper_date({Date0, Time}) ->
+    Date = fmid(Date0),
+    {Date, Time}.
+
+fmid({Y, M, D}) when M > 12 ->
+    YearsOver = M div 12,
+    fmid({Y+YearsOver, M-(YearsOver*12), D});
+fmid({Y, M, D}) when M < 1 ->
+    YearsUnder = abs(M-1) div 12 + 1,
+    fmid({Y-YearsUnder, M+(YearsUnder*12), D});
+
+fmid({Y, M, D}) when (D > 30 andalso (
+                        M=:=4 orelse 
+                        M=:=6 orelse
+                        M=:=9 orelse
+                        M=:=11)) ->
+    fmid({Y, M+1, D-30});
+fmid({Y, M, D}) when M=:=2 andalso D > 29 andalso ?IS_LEAP_YEAR(Y) ->
+    fmid({Y, M+1, D-29});
+fmid({Y, M, D}) when M =:= 2 andalso D > 28 andalso not(?IS_LEAP_YEAR(Y)) ->
+    fmid({Y, M+1, D-28});
+fmid({Y, M, D}) when D > 31 ->
+    fmid({Y, M+1, D-31});
+
+fmid({Y, M, D}) when D < 1 ->
+    TargetMonth = case M-1 of
+        0 -> 12;
+        X -> X
+    end,
+    DaysInTargetMonth = calendar:last_day_of_the_month(Y, TargetMonth),
+    fmid({Y, M-1, D+DaysInTargetMonth});
+
+
+fmid(Date) ->
+    Date.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Timezone Stuff   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
