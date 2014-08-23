@@ -616,6 +616,8 @@ ok
 
 ## Date Arithmetic
 
+(not fully tested yet, but will have full tests for 0.4.0)
+
 The current implementation of qdate's date arithmetic returns Unixtimes.
 
 There are 8 functions for date arithmetic:
