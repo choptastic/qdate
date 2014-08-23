@@ -522,17 +522,17 @@ get_timezone() ->
 get_timezone(Key) ->
     qdate_srv:get_timezone(Key).
 
-    ensure_timezone(auto) ->
-        ?DETERMINE_TZ;
-    ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
-        case get_timezone(Key) of
-            undefined -> throw({timezone_key_not_found,Key});
-            ToTZ -> ToTZ
-        end;
-    ensure_timezone(TZ) when is_binary(TZ) ->
-        binary_to_list(TZ);
-    ensure_timezone(TZ) when is_list(TZ) ->
-        TZ.
+ensure_timezone(auto) ->
+    ?DETERMINE_TZ;
+ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
+    case get_timezone(Key) of
+        undefined -> throw({timezone_key_not_found,Key});
+        ToTZ -> ToTZ
+    end;
+ensure_timezone(TZ) when is_binary(TZ) ->
+    binary_to_list(TZ);
+ensure_timezone(TZ) when is_list(TZ) ->
+    TZ.
 
 clear_timezone() ->
     qdate_srv:clear_timezone().
