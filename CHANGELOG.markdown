@@ -1,6 +1,6 @@
-## 0.4.0
+## 0.4.0 (in-development)
 
-* Add basic date arithmetic
+* Add basic date arithmetic (still needs tests)
 
 ## 0.3.0
 
