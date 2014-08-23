@@ -522,17 +522,17 @@ get_timezone() ->
 get_timezone(Key) ->
     qdate_srv:get_timezone(Key).
 
-ensure_timezone(auto) ->
-    ?DETERMINE_TZ;
-ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
-    case get_timezone(Key) of
-        undefined -> throw({timezone_key_not_found,Key});
-        ToTZ -> ToTZ
-    end;
-ensure_timezone(TZ) when is_binary(TZ) ->
-    binary_to_list(TZ);
-ensure_timezone(TZ) when is_list(TZ) ->
-    TZ.
+    ensure_timezone(auto) ->
+        ?DETERMINE_TZ;
+    ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
+        case get_timezone(Key) of
+            undefined -> throw({timezone_key_not_found,Key});
+            ToTZ -> ToTZ
+        end;
+    ensure_timezone(TZ) when is_binary(TZ) ->
+        binary_to_list(TZ);
+    ensure_timezone(TZ) when is_list(TZ) ->
+        TZ.
 
 clear_timezone() ->
     qdate_srv:clear_timezone().
@@ -634,7 +634,8 @@ tz_test_() ->
                 test_process_die(SetupData),
                 parser_format_test(SetupData),
                 test_deterministic_parser(SetupData),
-                test_disambiguation(SetupData)
+                test_disambiguation(SetupData),
+                arith_tests(SetupData)
             ]}
         end
     }.
@@ -796,6 +797,24 @@ test_process_die(_) ->
         ?_assertEqual(undefined,get_timezone(Pid))
     ].
     
+arith_tests(_) ->
+    {inorder,[
+        ?_assertEqual({{2012,2,29},{23,59,59}}, to_date(add_seconds(-1, {{2012,3,1},{0,0,0}}))),
+        ?_assertEqual({{2013,2,28},{23,59,59}}, to_date(add_seconds(-1, {{2013,3,1},{0,0,0}}))),
+        ?_assertEqual({{2015,1,1},{0,0,0}}, to_date(add_years(1, {{2014,1,1},{0,0,0}}))),
+        ?_assertEqual({{2015,1,1},{0,0,0}}, to_date(add_seconds(1, {{2014,12,31},{23,59,59}}))),
+        ?_assertEqual({{2015,1,1},{0,0,59}}, to_date(add_minutes(1, {{2014,12,31},{23,59,59}}))),
+        ?_assertEqual({{2015,1,1},{0,59,59}}, to_date(add_hours(1, {{2014,12,31},{23,59,59}}))),
+        ?_assertEqual({{2015,1,1},{23,59,59}}, to_date(add_days(1, {{2014,12,31},{23,59,59}}))),
+        ?_assertEqual({{2015,1,7},{23,59,59}}, to_date(add_weeks(1, {{2014,12,31},{23,59,59}}))),
+        ?_assertEqual({{2015,1,31},{23,59,59}}, to_date(add_months(1, {{2014,12,31},{23,59,59}}))),
+        %% currently fails the following test. Passing it will require improved logic
+        ?_assertEqual({{2015,3,1},{0,0,0}}, to_date(add_months(2, {{2014,12,31},{0,0,0}}))),
+        ?_assertEqual({{2015,3,1},{0,0,0}}, to_date(add_days(1, {{2015,2,28},{0,0,0}}))),
+        ?_assertEqual({{2015,3,3},{0,0,0}}, to_date(add_days(3, {{2015,2,28},{0,0,0}}))),
+        ?_assertEqual({{2017,3,1},{0,0,0}}, to_date(add_years(1, {{2016,2,29},{0,0,0}})))
+    ]}.
+
         
 start_test() ->
     application:start(qdate),
