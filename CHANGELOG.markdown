@@ -1,3 +1,7 @@
+## 0.4.0
+
+* Add basic date arithmetic
+
 ## 0.3.0
 
 * Add Timezone/Daylight Saving Disambiguation
