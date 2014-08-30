@@ -3,6 +3,8 @@
 * Add basic date arithmetic (still needs tests)
 * Add `get_formats()` and `get_parsers()` to see list of registered formats and
   parsers.
+* Fix bug related to relying on the application environment variable
+  `default_timezone`
 
 ## 0.3.0
 
