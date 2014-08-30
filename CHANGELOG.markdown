@@ -1,6 +1,8 @@
 ## 0.4.0 (in-development)
 
 * Add basic date arithmetic (still needs tests)
+* Add `get_formats()` and `get_parsers()` to see list of registered formats and
+  parsers.
 
 ## 0.3.0
 

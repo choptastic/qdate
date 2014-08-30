@@ -45,9 +45,11 @@
     register_parser/1,
     deregister_parser/1,
     deregister_parsers/0,
+    get_parsers/0,
 
     register_format/2,
     deregister_format/1,
+    get_formats/0,
 
     set_timezone/1,
     set_timezone/2,
@@ -564,6 +566,9 @@ clear_timezone(Key) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Register Parsers  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+get_parsers() ->
+    qdate_srv:get_parsers().
+
 register_parser(Key, Parser) when is_function(Parser,1) ->
     qdate_srv:register_parser(Key,Parser).
 
@@ -600,6 +605,9 @@ try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Register Formats  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_formats() ->
+    qdate_srv:get_formats().
 
 register_format(Key, Format) ->
     qdate_srv:register_format(Key, Format).

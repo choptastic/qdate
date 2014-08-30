@@ -33,7 +33,8 @@
 
     register_format/2,
     get_format/1,
-    deregister_format/1
+    deregister_format/1,
+    get_formats/0
 ]).
 
 %% PUBLIC API FUNCTIONS
@@ -72,7 +73,7 @@ deregister_parsers() ->
     ok = gen_server:call(?SRV,{deregister_parsers}).
 
 get_parsers() ->
-    gen_server:call(?SRV,{get_parsers}).    
+    gen_server:call(?SRV,get_parsers).    
 
 register_format(Key,Format) ->
     ok = gen_server:call(?SRV,{register_format,Key,Format}).
@@ -82,7 +83,9 @@ get_format(Key) ->
 
 deregister_format(Key) ->
     ok = gen_server:call(?SRV,{deregister_format,Key}).
-    
+   
+get_formats() ->
+    gen_server:call(?SRV, get_formats).
 
 %% SERVER FUNCTIONS
 
@@ -125,7 +128,7 @@ handle_call({register_parser,Key,Parser},_From,State) ->
     NewParsers = dict:store(Key, Parser, State#state.parsers),
     NewState = State#state{parsers=NewParsers},
     {reply, Key, NewState};
-handle_call({get_parsers},_From,State) ->
+handle_call(get_parsers,_From,State) ->
     Reply = dict:to_list(State#state.parsers),
     {reply, Reply, State};
 handle_call({deregister_parser,Key},_From,State) ->
@@ -146,6 +149,9 @@ handle_call({get_format,Key},_From,State) ->
         {ok, Format} -> Format
     end,
     {reply, Reply,State};
+handle_call(get_formats,_From,State) ->
+    Reply = dict:to_list(State#state.formats),
+    {reply, Reply, State};
 handle_call({deregister_format,Key},_From,State) ->
     NewFormats = dict:erase(Key, State#state.formats),
     NewState = State#state{formats=NewFormats},

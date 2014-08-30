@@ -240,6 +240,7 @@ be attempted before engaging the `ec_date` parser.
     able to parse the string, then it should return `undefined`.
   + `deregister_parser(Key)` - If you previously registered a parser with the
     `qdate` server, you can deregister it by its `Key`.
+  + `get_parsers()` - Get the list of all registered parsers and their keys.
 
 ### Registering and Deregistering Formatters
   + `register_format(Key, FormatString)` - Register a formatting string with
@@ -247,6 +248,7 @@ be attempted before engaging the `ec_date` parser.
     formatting string.
   + `deregister_format(Key)` - Deregister the formatting string from the
     `qdate` server.
+  + `get_formats()` - Get the list of all registered formats and their keys.
 
 ### About backwards compatibility with `ec_date` and deterministic parsing
 
