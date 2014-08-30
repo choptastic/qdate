@@ -80,7 +80,7 @@
 %%
 -define(DEFAULT_TZ, case application:get_env(qdate, default_timezone) of 
                         undefined -> "GMT";
-                        TZ -> TZ 
+                        {ok, TZ} -> TZ 
                     end).
 
 -define(DETERMINE_TZ, determine_timezone()).
