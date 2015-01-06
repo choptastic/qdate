@@ -1,4 +1,4 @@
-# qdate - A Wrapper for Erlang Date and Timezone Management
+# qdate - Erlang Date and Timezone Library
 
 [![Build Status](https://travis-ci.org/choptastic/qdate.png?branch=master)](https://travis-ci.org/choptastic/qdate)
 
