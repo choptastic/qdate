@@ -21,12 +21,15 @@ benefits of `ec_date` and `erlang_localtime`, as well as extending the
 capabilities of both to provide for other needed tools found in a single
 module.
 
-`qdate` will provide, under the roof of a single module date and time formatting
-and parsing from and into:
+`qdate` provides date and time formatting and parsing from and into:
  + Formatting Strings
  + Erlang Date Format
  + Erlang Now Format
  + Unixtime integers
+ + Timezones
+
+And all this while dealing with timezone parsing, formatting, conversion
+and overall management.
 
 #### Acceptable Date Formats
 
