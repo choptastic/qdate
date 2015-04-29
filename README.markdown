@@ -625,7 +625,7 @@ ok
 
 The current implementation of qdate's date arithmetic returns Unixtimes.
 
-There are 8 functions for date arithmetic:
+There are 8 main functions for date arithmetic:
 
 	+ `add_seconds(Seconds, Date)`
 	+ `add_minutes(Minutes, Date)`
@@ -639,8 +639,20 @@ There are 8 functions for date arithmetic:
 	  will add 1 year, add 2 months, subtract 3 days, subtract 500 hours, add 20
 	  minutes, and not make any changes to seconds.
 
-For the date arithmetic functions, `Date`, like all qdate functions, can be any
+For the date arithmetic functions, `Date`, like all `qdate` functions, can be any
 format.
+
+### Date Arithmetic from "now"
+
+There are 7 other arithmetic functions that take a single argument, and these do arithmetic from "now." For example, `add_years(4)` is a shortcut for `add_years(4, os:timestamp())`.
+
+   + `add_seconds(Seconds)`
+   + `add_minutes(Minutes)`
+   + `add_hours(Hours)`
+   + `add_days(Days)`
+   + `add_weeks(Weeks)`
+   + `add_months(Months)`
+   + `add_years(Years)`
 
 ## Thanks
 
@@ -663,6 +675,8 @@ See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGEL
 
 ## TODO
 
++ Strip the reliance on having to start qdate. It should just use the
+  application environment for storing formats and parsers.
 + Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
   the backend)
 + Add `-spec` and `-type` info for dialyzer
