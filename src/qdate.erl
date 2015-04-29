@@ -31,12 +31,19 @@
 
 -export([
     add_seconds/2,
+    add_seconds/1,
     add_minutes/2,
+    add_minutes/1,
     add_hours/2,
+    add_hours/1,
     add_days/2,
+    add_days/1,
     add_weeks/2,
+    add_weeks/1,
     add_months/2,
+    add_months/1,
     add_years/2,
+    add_years/1,
     add_date/2
 ]).
 
@@ -343,18 +350,33 @@ compare(A, Op, B) ->
 add_seconds(Seconds, Date) ->
     to_unixtime(Date) + Seconds.
 
+add_seconds(Seconds) ->
+    add_seconds(Seconds, os:timestamp()).
+
 add_minutes(Minutes, Date) ->
     add_seconds(Minutes * 60, Date).
 
+add_minutes(Minutes) ->
+    add_minutes(Minutes, os:timestamp()).
+
 add_hours(Hours, Date) ->
     add_seconds(Hours * 3600, Date).
+
+add_hours(Hours) ->
+    add_hours(Hours, os:timestamp()).
 
 add_days(Days, Date0) ->
     {{Y,M,D},Time} = to_date(Date0),
     to_unixtime(fix_maybe_improper_date({{Y, M, D+Days}, Time})). 
 
+add_days(Days) ->
+    add_days(Days, os:timestamp()).
+
 add_weeks(Weeks, Date) ->
     add_days(Weeks * 7, Date).
+
+add_weeks(Weeks) ->
+    add_weeks(Weeks, os:timestamp()).
 
 add_months(Months, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
@@ -362,6 +384,9 @@ add_months(Months, Date) ->
     DaysInMonth = calendar:last_day_of_the_month(TargetYear, TargetMonth),
     NewD = lists:min([DaysInMonth, D]),
     to_unixtime(fix_maybe_improper_date({{Y, M+Months, NewD}, Time})).
+
+add_months(Months) ->
+    add_months(Months, os:timestamp()).
 
 add_years(Years, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
@@ -374,6 +399,9 @@ add_years(Years, Date) ->
             D
     end,
     to_unixtime({{Y+Years, M, NewD}, Time}).
+
+add_years(Years) ->
+    add_years(Years, os:timestamp()).
 
 add_date({{AddY, AddM, AddD}, {AddH, AddI, AddS}}, Date) ->
     {{Y, M, D}, {H, I, S}} = to_date(Date),

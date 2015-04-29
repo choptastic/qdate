@@ -1,6 +1,6 @@
 ## 0.4.0 (in-development)
 
-* Add basic date arithmetic (still needs tests)
+* Add basic date arithmetic (e.g. `qdate:add_hours/[1-2]`, etc).
 * Add `get_formats()` and `get_parsers()` to see list of registered formats and
   parsers.
 * Fix bug related to relying on the application environment variable
