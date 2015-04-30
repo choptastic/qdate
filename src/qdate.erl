@@ -95,10 +95,10 @@
 -define(else, true).
 
 start() ->
-    application:start(qdate).
+    application:load(qdate).
 
 stop() ->
-    application:stop(qdate).
+    ok.
 
 to_string(Format) ->
     to_string(Format, os:timestamp()).
@@ -616,6 +616,7 @@ try_registered_parsers(RawDate) ->
 try_parsers(_RawDate,[]) ->
     undefined;
 try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
+    io:format("Trying Parser: ~p~n", [ParserKey]),
     try Parser(RawDate) of
         {{_,_,_},{_,_,_}} = DateTime ->
             {DateTime,undefined};
@@ -686,7 +687,6 @@ tz_test_() ->
                 simple_test(SetupData),
                 compare_test(SetupData),
                 tz_tests(SetupData),
-                test_process_die(SetupData),
                 parser_format_test(SetupData),
                 test_deterministic_parser(SetupData),
                 test_disambiguation(SetupData),
@@ -819,38 +819,6 @@ parser_format_test(_) ->
         ?_assertEqual("2/8/2008 12:00am",to_string(longdate,"2008-02-08 12:00am")),
         ?_assertEqual("2/8/2008 12:00am",to_string(longdate,"20080208"))
     ]}.
-
-test_process_die(_) ->
-    TZ = "MST",
-    Caller = self(),
-    Pid = spawn(fun() -> 
-                        set_timezone(TZ),
-                        Caller ! tz_set,
-                        receive tz_set_ack -> ok end,
-                        Caller ! get_timezone()
-                end),
-
-    PidTZFromOtherProc = receive 
-                            tz_set ->
-                                T = get_timezone(Pid),
-                                Pid ! tz_set_ack,
-                                T
-                            after 1000 -> fail 
-                         end,
-    ReceivedTZ = receive 
-                    TZ -> TZ 
-                 after 2000 ->
-                    fail 
-                 end,
-
-    [
-        %% Verify we can read the spawned process's TZ from another proc
-        ?_assertEqual(TZ,PidTZFromOtherProc),
-        %% Verify the spawned process properly set the TZ
-        ?_assertEqual(TZ,ReceivedTZ),
-        %% Verify the now-dead spawned process's TZ is cleared
-        ?_assertEqual(undefined,get_timezone(Pid))
-    ].
     
 arith_tests(_) ->
     {inorder,[

@@ -7,6 +7,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { qdate_app, []}},
+  {modules, [qdate, qdate_srv]},
   {env, []}
  ]}.
