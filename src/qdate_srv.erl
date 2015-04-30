@@ -1,6 +1,10 @@
 % vim: ts=4 sw=4 et
 % Copyright (c) 2013-2015 Jesse Gumm
 % See LICENSE for licensing information.
+%
+% NOTE: You'll probably notice that this isn't *actually* a server.  It *used*
+% to be a server, but is now instead just where we interact with the qdate
+% application environment.  Anyway, sorry for the confusion.
 
 -module(qdate_srv).
 
