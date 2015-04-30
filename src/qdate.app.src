@@ -1,7 +1,7 @@
 {application, qdate,
  [
   {description, "Simple Date and Timezone handling for Erlang"},
-  {vsn, "0.4.0-pre"},
+  {vsn, "0.4.0"},
   {registered, []},
   {applications, [
                   kernel,
