@@ -675,12 +675,9 @@ See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGEL
 
 ## TODO
 
-+ Strip the reliance on having to start qdate. It should just use the
-  application environment for storing formats and parsers.
 + Make `qdate` backend-agnostic (allow specifying either ec_date or dh_date as
   the backend)
 + Add `-spec` and `-type` info for dialyzer
-+ Add date and time arithmetic.
 + Provide a sample qdate.config for users to see
 + Research the viability of [ezic](https://github.com/drfloob/ezic) for a
   timezone backend replacement for `erlang_localtime`.

@@ -4,8 +4,6 @@
 
 -module(qdate_srv).
 
--define(SRV, ?MODULE).
-
 -export([
     set_timezone/1,
     set_timezone/2,

@@ -1,5 +1,10 @@
 ## 0.4.0 (in-development)
 
+* Remove dependency on a running server for tracking application state.
+  Instead, parsers and formats are registered to the application environment
+  vars (e.g. `application:get_env`), and timezones are registered to the
+  application environment or the process dictionary. A side-effect of this
+  change is that you can no longer query another process's timezone. 
 * Add basic date arithmetic (e.g. `qdate:add_hours/[1-2]`, etc).
 * Add `get_formats()` and `get_parsers()` to see list of registered formats and
   parsers.
