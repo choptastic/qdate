@@ -1,4 +1,4 @@
-## 0.4.0 (in-development)
+## 0.4.0
 
 * Remove dependency on a running server for tracking application state.
   Instead, parsers and formats are registered to the application environment
