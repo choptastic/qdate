@@ -616,7 +616,6 @@ try_registered_parsers(RawDate) ->
 try_parsers(_RawDate,[]) ->
     undefined;
 try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
-    io:format("Trying Parser: ~p~n", [ParserKey]),
     try Parser(RawDate) of
         {{_,_,_},{_,_,_}} = DateTime ->
             {DateTime,undefined};
