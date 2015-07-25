@@ -1,10 +1,18 @@
+REBAR = $(shell pwd)/rebar3
+
 all: compile
 
 compile:
-	./rebar3 compile
+	$(REBAR) compile
 
 test: compile
-	./rebar3 eunit
+	$(REBAR) eunit
 
 run:
 	erl -pa ebin/ deps/*/ebin/ -eval "application:start(qdate)"
+
+publish:
+	$(REBAR) as pkg upgrade
+	$(REBAR) as pkg hex publish
+	$(REBAR) upgrade
+
