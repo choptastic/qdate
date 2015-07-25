@@ -4,3 +4,4 @@
 deps/
 ebin/
 .eunit/
+_build

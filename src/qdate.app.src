@@ -8,5 +8,8 @@
                   stdlib
                  ]},
   {modules, [qdate, qdate_srv]},
-  {env, []}
+  {env, []},
+  {contributors, ["Jesse Gumm"]},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/choptastic/qdate"}]}
  ]}.
