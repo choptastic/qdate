@@ -1,3 +1,7 @@
+## 0.4.1
+
+* Remove unnecessary `io:format` call.
+
 ## 0.4.0
 
 * Remove dependency on a running server for tracking application state.
