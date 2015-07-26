@@ -667,6 +667,8 @@ not exist.
 + [Mark Allen](https://github.com/mrallen1)
 + [Christopher Phillips](https://github.com/lostcolony)
 + [Nicholas Lundgaard](https://github.com/nlundgaard-al)
++ [Alejandro Ramallo](https://github.com/aramallo)
++ [Heinz Gies](https://github.com/Licenser)
 
 
 ## Changelog

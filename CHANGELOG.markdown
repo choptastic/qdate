@@ -1,3 +1,8 @@
+## 0.5.0
+
+* Update to rebar3 and add hex compatability. (Thanks Heinz Gies)
+* Remove R14 from travis testing.
+
 ## 0.4.1
 
 * Remove unnecessary `io:format` call.
