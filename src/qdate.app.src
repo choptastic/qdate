@@ -5,6 +5,8 @@
   {registered, []},
   {applications, [
                   kernel,
+                  erlang_localtime,
+                  erlware_commons,
                   stdlib
                  ]},
   {modules, [qdate, qdate_srv]},
