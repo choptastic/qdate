@@ -9,7 +9,7 @@ test: compile
 	$(REBAR) eunit
 
 run:
-	erl -pa ebin/ deps/*/ebin/ -eval "application:start(qdate)"
+	$(REBAR) shell
 
 publish:
 	$(REBAR) as pkg upgrade

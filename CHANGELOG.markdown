@@ -1,6 +1,7 @@
-## 0.5.0
+## 0.5.0 (in development)
 
-* Update to rebar3 and add hex compatability. (Thanks Heinz Gies)
+* Update to rebar3 and add hex compatability. (@Licenser)
+* Properly add dependent apps to .app.src (@Licenser)
 * Remove R14 from travis testing.
 
 ## 0.4.1
