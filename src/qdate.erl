@@ -242,7 +242,9 @@ to_date(ToTZ, Disambiguate, RawDate)  ->
     end,    
     try raw_to_date(RawDate3) of
         D={{_,_,_},{_,_,_}} ->
-            date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ)
+            date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ);
+        {{Year, Month, Date},{Hour,Minute,Second,_Millis}} ->
+            date_tz_to_tz({{Year, Month, Date},{Hour,Minute,Second}}, Disambiguate, FromTZ, ToTZ)
     catch
         _:_ ->
             case raw_to_date(RawDate) of
@@ -766,7 +768,9 @@ tz_tests(_) ->
         ?_assertEqual(ok, set_timezone("EST")),
         ?_assertEqual(555555555,to_unixtime("1987-08-10 00:59:15 GMT")),
         ?_assertEqual({555,555555,0},to_now("1987-08-10 00:59:15 GMT")),
-        ?_assertEqual(ok, set_timezone("GMT"))
+        ?_assertEqual(ok, set_timezone("GMT")),
+        ?_assertEqual({{1970, 1, 1}, {1, 0, 0}}, to_date("CET", "1970-01-01T00:00:00Z"))
+
     ]}.
 
 
