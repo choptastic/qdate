@@ -4,6 +4,11 @@
 * Properly add dependent apps to .app.src (@Licenser)
 * Remove R14 from travis testing.
 
+## 0.4.2
+
+* Add partial support for `ec_date`'s 4-tuple subsecond accuracy time format.
+* Fix `erlware_commons` dependency to a rebar2-compatible version.
+
 ## 0.4.1
 
 * Remove unnecessary `io:format` call.
