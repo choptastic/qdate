@@ -625,14 +625,14 @@ The current implementation of qdate's date arithmetic returns Unixtimes.
 
 There are 8 main functions for date arithmetic:
 
-    + `add_seconds(Seconds, Date)`
-    + `add_minutes(Minutes, Date)`
-    + `add_hours(Hours, Date)`
-    + `add_days(Days, Date)`
-    + `add_weeks(Weeks, Date)`
-    + `add_months(Months, Date)`
-    + `add_years(Years, Date)`
-    + `add_date(DateToAdd, Date)` - `DateToAdd` is a shortcut way of adding
+   + `add_seconds(Seconds, Date)`
+   + `add_minutes(Minutes, Date)`
+   + `add_hours(Hours, Date)`
+   + `add_days(Days, Date)`
+   + `add_weeks(Weeks, Date)`
+   + `add_months(Months, Date)`
+   + `add_years(Years, Date)`
+   + `add_date(DateToAdd, Date)` - `DateToAdd` is a shortcut way of adding
       numerous options. For example. `qdate:add_date({{1, 2, -3}, {-500, 20, 0}})`
       will add 1 year, add 2 months, subtract 3 days, subtract 500 hours, add 20
       minutes, and not make any changes to seconds.
