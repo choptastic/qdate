@@ -48,6 +48,17 @@
 ]).
 
 -export([
+    range/4,
+    range_seconds/3,
+    range_minutes/3,
+    range_hours/3,
+    range_days/3,
+    range_weeks/3,
+    range_months/3,
+    range_years/3
+]).
+
+-export([
     register_parser/2,
     register_parser/1,
     deregister_parser/1,
@@ -459,6 +470,77 @@ fmid({Y, M, D}) when D < 1 ->
 
 fmid(Date) ->
     Date.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      Ranges        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+range(seconds, Interval, Start, Finish) ->
+    range_inner(fun add_seconds/2, Interval, Start, Finish);
+range(minutes, Interval, Start, Finish) ->
+    range_inner(fun add_minutes/2, Interval, Start, Finish);
+range(hours, Interval, Start, Finish) ->
+    range_inner(fun add_hours/2, Interval, Start, Finish);
+range(days, Interval, Start, Finish) ->
+    range_inner(fun add_days/2, Interval, Start, Finish);
+range(weeks, Interval, Start, Finish) ->
+    range_inner(fun add_weeks/2, Interval, Start, Finish);
+range(months, Interval, Start, Finish) ->
+    range_inner(fun add_months/2, Interval, Start, Finish);
+range(years, Interval, Start, Finish) ->
+    range_inner(fun add_years/2, Interval, Start, Finish).
+
+range_inner(IntervalFun, Interval, Start, Finish) when Interval > 0 ->
+    %% If Interval>0, then we're ascending, and we want to compare start/end
+    %% dates normally
+    CompareFun = fun(S, F) -> compare(S, F) end,
+    range_normalizer(IntervalFun, Interval, CompareFun, Start, Finish);
+range_inner(IntervalFun, Interval, Start, Finish) when Interval < 0 ->
+    %% If Interval<0, then we're descending, and we want to compare start/end
+    %% dates backwards (we want to end when the Start Date is Lower than
+    %% Finish)
+    CompareFun = fun(S, F) -> compare(F, S) end,
+    range_normalizer(IntervalFun, Interval, CompareFun, Start, Finish);
+range_inner(_, Interval, _, _) when Interval==0 ->
+    throw(interval_cannot_be_zero).
+
+range_normalizer(IntervalFun, Interval, CompareFun, Start0, Finish0) ->
+    %% Convert dates to unixtime for speed's sake
+    Start = to_unixtime(Start0),
+    Finish = to_unixtime(Finish0),
+    %% Prepare the incrementer, so we just need to pass the date to the incrementer.
+    Incrementer = fun(D) -> IntervalFun(Interval, D) end,
+    range_worker(Incrementer, CompareFun, Start, Finish).
+
+range_worker(Incrementer, CompareFun, Start, Finish) ->
+    case CompareFun(Start, Finish) of
+        0 -> [Finish]; %% Equal, so we add our Finish value
+        1 -> []; %% Start is after Finish, so we add nothing
+        -1 -> %% Start is before Finish, so we include it, and recurse
+            NextDay = Incrementer(Start),
+            [Start | range_worker(Incrementer, CompareFun, NextDay, Finish)]
+    end.
+
+range_seconds(Interval, Start, Finish) ->
+    range(seconds, Interval, Start, Finish).
+
+range_minutes(Interval, Start, Finish) ->
+    range(minutes, Interval, Start, Finish).
+
+range_hours(Interval, Start, Finish) ->
+    range(hours, Interval, Start, Finish).
+
+range_days(Interval, Start, Finish) ->
+    range(days, Interval, Start, Finish).
+
+range_weeks(Interval, Start, Finish) ->
+    range(weeks, Interval, Start, Finish).
+
+range_months(Interval, Start, Finish) ->
+    range(months, Interval, Start, Finish).
+
+range_years(Interval, Start, Finish) ->
+    range(years, Interval, Start, Finish).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
