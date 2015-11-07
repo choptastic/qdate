@@ -621,15 +621,21 @@ ok
 
 ## Date Truncation (Beginning of X)
 
-Sometimes you need to truncate a time (say, the beginning of the current month).
+Sometimes you need to truncate a time (say, the beginning of the current
+month).
 
-This is abstracted to `beginning_X` functions, which return a date/time format with the dates and times truncated to the specified level.
+This is abstracted to `beginning_X` functions, which return a date/time format
+with the dates and times truncated to the specified level.
 
    + `beginning_minute(Date)`
    + `beginning_hour(Date)`
    + `beginning_day(Date)`
    + `beginning_month(Date)`
    + `beginning_year(Date)`
+
+There are also 0-arity versions of the above, in which `Date` is assumed to be
+"right now". For example, calling `qdate:beginning_month()` would return
+midnight on the first day of the current month.
 
 ## Date Arithmetic
 

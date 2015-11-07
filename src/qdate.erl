@@ -26,11 +26,16 @@
 
 -export([
     beginning_minute/1,
+    beginning_minute/0,
     beginning_hour/1,
+    beginning_hour/0,
     beginning_day/1,
+    beginning_day/0,
     %beginning_week/2, %% needs to be /2 because we also need to define what day is considered "beginning of week", since some calendars do sunday and some do monday. We'll hold off on implementation here
     beginning_month/1,
-    beginning_year/1
+    beginning_month/0,
+    beginning_year/1,
+    beginning_year/0
 ]).
 
 -export([
@@ -337,21 +342,36 @@ to_now(Disamb, ToParse) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% Beginning/Truncation  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+beginning_minute() ->
+    beginning_minute({date(),time()}).
+
 beginning_minute(Date) ->
     {{Y,M,D},{H,M,_}} = to_date(Date),
     {{Y,M,D},{H,M,0}}.
+
+beginning_hour() ->
+    beginning_hour({date(),time()}).
 
 beginning_hour(Date) ->
     {{Y,M,D},{H,_,_}} = to_date(Date),
     {{Y,M,D},{H,0,0}}.
 
+beginning_day() ->
+    beginning_day({date(),time()}).
+
 beginning_day(Date) ->
     {{Y,M,D},{_,_,_}} = to_date(Date),
     {{Y,M,D},{0,0,0}}.
 
+beginning_month() ->
+    beginning_month({date(),time()}).
+
 beginning_month(Date) ->
     {{Y,M,_},{_,_,_}} = to_date(Date),
     {{Y,M,1},{0,0,0}}.
+
+beginning_year() ->
+    beginning_year({date(),time()}).
 
 beginning_year(Date) ->
     {{Y,_,_},{_,_,_}} = to_date(Date),
