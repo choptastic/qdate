@@ -619,6 +619,18 @@ ok
 %% that timezone to our intended timezone.
 ```
 
+## Date Truncation (Beginning of X)
+
+Sometimes you need to truncate a time (say, the beginning of the current month).
+
+This is abstracted to `beginning_X` functions, which return a date/time format with the dates and times truncated to the specified level.
+
+   + `beginning_minute(Date)`
+   + `beginning_hour(Date)`
+   + `beginning_day(Date)`
+   + `beginning_month(Date)`
+   + `beginning_year(Date)`
+
 ## Date Arithmetic
 
 The current implementation of qdate's date arithmetic returns Unixtimes.

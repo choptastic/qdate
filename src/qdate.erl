@@ -25,6 +25,15 @@
 ]).
 
 -export([
+    beginning_minute/1,
+    beginning_hour/1,
+    beginning_day/1,
+    %beginning_week/2, %% needs to be /2 because we also need to define what day is considered "beginning of week", since some calendars do sunday and some do monday. We'll hold off on implementation here
+    beginning_month/1,
+    beginning_year/1
+]).
+
+-export([
     compare/2,
     compare/3
 ]).
@@ -323,6 +332,30 @@ to_now(Disamb, ToParse) ->
             unixtime_to_now(Unixtime)
     end.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Beginning/Truncation  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+beginning_minute(Date) ->
+    {{Y,M,D},{H,M,_}} = to_date(Date),
+    {{Y,M,D},{H,M,0}}.
+
+beginning_hour(Date) ->
+    {{Y,M,D},{H,_,_}} = to_date(Date),
+    {{Y,M,D},{H,0,0}}.
+
+beginning_day(Date) ->
+    {{Y,M,D},{_,_,_}} = to_date(Date),
+    {{Y,M,D},{0,0,0}}.
+
+beginning_month(Date) ->
+    {{Y,M,_},{_,_,_}} = to_date(Date),
+    {{Y,M,1},{0,0,0}}.
+
+beginning_year(Date) ->
+    {{Y,_,_},{_,_,_}} = to_date(Date),
+    {{Y,1,1},{0,0,0}}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Comparisons     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
