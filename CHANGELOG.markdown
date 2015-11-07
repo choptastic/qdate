@@ -1,6 +1,9 @@
 ## 0.5.0 (in development)
 
-* Add range functions for getting a list of dates/times within a range.
+* Add `range_X` functions for getting a list of dates/times within a range
+  (such as `range_day/3` to get a range of days between a start and end date.
+* Add `beginning_X` functions to return the beginning of the provided precision
+  (minute, hour, day, month, or year)
 * Update to rebar3 and add hex compatability. (@Licenser)
 * Properly add dependent apps to .app.src (@Licenser)
 * Remove R14 from travis testing.
