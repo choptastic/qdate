@@ -767,6 +767,7 @@ See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGEL
 + Provide a sample qdate.config for users to see
 + Research the viability of [ezic](https://github.com/drfloob/ezic) for a
   timezone backend replacement for `erlang_localtime`.
++ Add age calculation stuff: `age_years(Date)`, `age_minutes(Date)`, etc.
 
 ## Conclusion
 
