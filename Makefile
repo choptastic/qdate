@@ -5,6 +5,9 @@ all: compile
 compile:
 	$(REBAR) compile
 
+update:
+	$(REBAR) update
+
 test: compile
 	$(REBAR) eunit
 

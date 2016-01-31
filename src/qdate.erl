@@ -1,5 +1,5 @@
 % vim: ts=4 sw=4 et
-% Copyright (c) 2013 Jesse Gumm
+% Copyright (c) 2013-2015 Jesse Gumm
 % See LICENSE for licensing information.
 %
 -module(qdate).
@@ -25,6 +25,20 @@
 ]).
 
 -export([
+    beginning_minute/1,
+    beginning_minute/0,
+    beginning_hour/1,
+    beginning_hour/0,
+    beginning_day/1,
+    beginning_day/0,
+    %beginning_week/2, %% needs to be /2 because we also need to define what day is considered "beginning of week", since some calendars do sunday and some do monday. We'll hold off on implementation here
+    beginning_month/1,
+    beginning_month/0,
+    beginning_year/1,
+    beginning_year/0
+]).
+
+-export([
     compare/2,
     compare/3
 ]).
@@ -45,6 +59,17 @@
     add_years/2,
     add_years/1,
     add_date/2
+]).
+
+-export([
+    range/4,
+    range_seconds/3,
+    range_minutes/3,
+    range_hours/3,
+    range_days/3,
+    range_weeks/3,
+    range_months/3,
+    range_years/3
 ]).
 
 -export([
@@ -242,7 +267,9 @@ to_date(ToTZ, Disambiguate, RawDate)  ->
     end,    
     try raw_to_date(RawDate3) of
         D={{_,_,_},{_,_,_}} ->
-            date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ)
+            date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ);
+        {{Year, Month, Date},{Hour,Minute,Second,_Millis}} ->
+            date_tz_to_tz({{Year, Month, Date},{Hour,Minute,Second}}, Disambiguate, FromTZ, ToTZ)
     catch
         _:_ ->
             case raw_to_date(RawDate) of
@@ -310,6 +337,45 @@ to_now(Disamb, ToParse) ->
             unixtime_to_now(Unixtime)
     end.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Beginning/Truncation  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+beginning_minute() ->
+    beginning_minute({date(),time()}).
+
+beginning_minute(Date) ->
+    {{Y,M,D},{H,M,_}} = to_date(Date),
+    {{Y,M,D},{H,M,0}}.
+
+beginning_hour() ->
+    beginning_hour({date(),time()}).
+
+beginning_hour(Date) ->
+    {{Y,M,D},{H,_,_}} = to_date(Date),
+    {{Y,M,D},{H,0,0}}.
+
+beginning_day() ->
+    beginning_day({date(),time()}).
+
+beginning_day(Date) ->
+    {{Y,M,D},{_,_,_}} = to_date(Date),
+    {{Y,M,D},{0,0,0}}.
+
+beginning_month() ->
+    beginning_month({date(),time()}).
+
+beginning_month(Date) ->
+    {{Y,M,_},{_,_,_}} = to_date(Date),
+    {{Y,M,1},{0,0,0}}.
+
+beginning_year() ->
+    beginning_year({date(),time()}).
+
+beginning_year(Date) ->
+    {{Y,_,_},{_,_,_}} = to_date(Date),
+    {{Y,1,1},{0,0,0}}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Comparisons     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -457,6 +523,77 @@ fmid({Y, M, D}) when D < 1 ->
 
 fmid(Date) ->
     Date.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      Ranges        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+range(seconds, Interval, Start, Finish) ->
+    range_inner(fun add_seconds/2, Interval, Start, Finish);
+range(minutes, Interval, Start, Finish) ->
+    range_inner(fun add_minutes/2, Interval, Start, Finish);
+range(hours, Interval, Start, Finish) ->
+    range_inner(fun add_hours/2, Interval, Start, Finish);
+range(days, Interval, Start, Finish) ->
+    range_inner(fun add_days/2, Interval, Start, Finish);
+range(weeks, Interval, Start, Finish) ->
+    range_inner(fun add_weeks/2, Interval, Start, Finish);
+range(months, Interval, Start, Finish) ->
+    range_inner(fun add_months/2, Interval, Start, Finish);
+range(years, Interval, Start, Finish) ->
+    range_inner(fun add_years/2, Interval, Start, Finish).
+
+range_inner(IntervalFun, Interval, Start, Finish) when Interval > 0 ->
+    %% If Interval>0, then we're ascending, and we want to compare start/end
+    %% dates normally
+    CompareFun = fun(S, F) -> compare(S, F) end,
+    range_normalizer(IntervalFun, Interval, CompareFun, Start, Finish);
+range_inner(IntervalFun, Interval, Start, Finish) when Interval < 0 ->
+    %% If Interval<0, then we're descending, and we want to compare start/end
+    %% dates backwards (we want to end when the Start Date is Lower than
+    %% Finish)
+    CompareFun = fun(S, F) -> compare(F, S) end,
+    range_normalizer(IntervalFun, Interval, CompareFun, Start, Finish);
+range_inner(_, Interval, _, _) when Interval==0 ->
+    throw(interval_cannot_be_zero).
+
+range_normalizer(IntervalFun, Interval, CompareFun, Start0, Finish0) ->
+    %% Convert dates to unixtime for speed's sake
+    Start = to_unixtime(Start0),
+    Finish = to_unixtime(Finish0),
+    %% Prepare the incrementer, so we just need to pass the date to the incrementer.
+    Incrementer = fun(D) -> IntervalFun(Interval, D) end,
+    range_worker(Incrementer, CompareFun, Start, Finish).
+
+range_worker(Incrementer, CompareFun, Start, Finish) ->
+    case CompareFun(Start, Finish) of
+        0 -> [Finish]; %% Equal, so we add our Finish value
+        1 -> []; %% Start is after Finish, so we add nothing
+        -1 -> %% Start is before Finish, so we include it, and recurse
+            NextDay = Incrementer(Start),
+            [Start | range_worker(Incrementer, CompareFun, NextDay, Finish)]
+    end.
+
+range_seconds(Interval, Start, Finish) ->
+    range(seconds, Interval, Start, Finish).
+
+range_minutes(Interval, Start, Finish) ->
+    range(minutes, Interval, Start, Finish).
+
+range_hours(Interval, Start, Finish) ->
+    range(hours, Interval, Start, Finish).
+
+range_days(Interval, Start, Finish) ->
+    range(days, Interval, Start, Finish).
+
+range_weeks(Interval, Start, Finish) ->
+    range(weeks, Interval, Start, Finish).
+
+range_months(Interval, Start, Finish) ->
+    range(months, Interval, Start, Finish).
+
+range_years(Interval, Start, Finish) ->
+    range(years, Interval, Start, Finish).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -780,7 +917,9 @@ tz_tests(_) ->
         ?_assertEqual(ok, set_timezone("EST")),
         ?_assertEqual(555555555,to_unixtime("1987-08-10 00:59:15 GMT")),
         ?_assertEqual({555,555555,0},to_now("1987-08-10 00:59:15 GMT")),
-        ?_assertEqual(ok, set_timezone("GMT"))
+        ?_assertEqual(ok, set_timezone("GMT")),
+        ?_assertEqual({{1970, 1, 1}, {1, 0, 0}}, to_date("CET", "1970-01-01T00:00:00Z"))
+
     ]}.
 
 

@@ -619,25 +619,41 @@ ok
 %% that timezone to our intended timezone.
 ```
 
-## Date Arithmetic
+## Date Truncation (Beginning of X)
 
-(not fully tested yet, but will have full tests for 0.4.0)
+Sometimes you need to truncate a time (say, the beginning of the current
+month).
+
+This is abstracted to `beginning_X` functions, which return a date/time format
+with the dates and times truncated to the specified level.
+
+   + `beginning_minute(Date)`
+   + `beginning_hour(Date)`
+   + `beginning_day(Date)`
+   + `beginning_month(Date)`
+   + `beginning_year(Date)`
+
+There are also 0-arity versions of the above, in which `Date` is assumed to be
+"right now". For example, calling `qdate:beginning_month()` would return
+midnight on the first day of the current month.
+
+## Date Arithmetic
 
 The current implementation of qdate's date arithmetic returns Unixtimes.
 
 There are 8 main functions for date arithmetic:
 
-	+ `add_seconds(Seconds, Date)`
-	+ `add_minutes(Minutes, Date)`
-	+ `add_hours(Hours, Date)`
-	+ `add_days(Days, Date)`
-	+ `add_weeks(Weeks, Date)`
-	+ `add_months(Months, Date)`
-	+ `add_years(Years, Date)`
-	+ `add_date(DateToAdd, Date)` - `DateToAdd` is a shortcut way of adding
-	  numerous options. For example. `qdate:add_date({{1, 2, -3}, {-500, 20, 0}})`
-	  will add 1 year, add 2 months, subtract 3 days, subtract 500 hours, add 20
-	  minutes, and not make any changes to seconds.
+   + `add_seconds(Seconds, Date)`
+   + `add_minutes(Minutes, Date)`
+   + `add_hours(Hours, Date)`
+   + `add_days(Days, Date)`
+   + `add_weeks(Weeks, Date)`
+   + `add_months(Months, Date)`
+   + `add_years(Years, Date)`
+   + `add_date(DateToAdd, Date)` - `DateToAdd` is a shortcut way of adding
+      numerous options. For example. `qdate:add_date({{1, 2, -3}, {-500, 20, 0}})`
+      will add 1 year, add 2 months, subtract 3 days, subtract 500 hours, add 20
+      minutes, and not make any changes to seconds.
 
 For the date arithmetic functions, `Date`, like all `qdate` functions, can be any
 format.
@@ -653,6 +669,74 @@ There are 7 other arithmetic functions that take a single argument, and these do
    + `add_weeks(Weeks)`
    + `add_months(Months)`
    + `add_years(Years)`
+
+## Date and Time Ranges
+
+qdate provides a number of `range` functions that give applicable dates/times
+within a start and end time. For example, "All days from 2015-01-01 to today",
+"every 3rd month from 2000-01-01 to 2009-12-31", or "every 15 minutes from
+midnight to 11:59pm on 2015-04-15".
+
+The functions are as follows:
+
+   + `range_seconds(Interval, Start, End)`
+   + `range_minutes(Interval, Start, End)`
+   + `range_hours(Interval, Start, End)`
+   + `range_days(Interval, Start, End)`
+   + `range_weeks(Interval, Start, End)`
+   + `range_months(Interval, Start, End)`
+   + `range_years(Interval, Start, End)`
+
+Where `Interval` is the number of seconds/days/years/etc.
+
+So for example:
+
+```erlang
+%% Get every 15th minute from "2015-04-15 12:00am to 2015-04-15 11:59am"
+> qdate:range_minutes(15, "2015-04-15 12:00am", "2015-04-15 11:59am").
+[1429056000,1429056900,1429057800,1429058700,1429059600,
+ 1429060500,1429061400,1429062300,1429063200,1429064100,
+ 1429065000,1429065900,1429066800,1429067700,1429068600,
+ 1429069500,1429070400,1429071300,1429072200,1429073100,
+ 1429074000,1429074900,1429075800,1429076700,1429077600,
+ 1429078500,1429079400,1429080300,1429081200|...]
+
+%% Get every day of April, 2014
+> qdate:range_days(1, "2014-04-01", "2014-04-30").
+[1396310400,1396396800,1396483200,1396569600,1396656000,
+ 1396742400,1396828800,1396915200,1397001600,1397088000,
+ 1397174400,1397260800,1397347200,1397433600,1397520000,
+ 1397606400,1397692800,1397779200,1397865600,1397952000,
+ 1398038400,1398124800,1398211200,1398297600,1398384000,
+ 1398470400,1398556800,1398643200,1398729600|...]
+```
+
+Note, that the return value (just like qdate's arithmetic functions) is a list
+of integers. These integers are unix timestamps and can be easily formatted
+with qdate:
+
+```erlang
+> Mins = qdate:range_minutes(15, "2015-04-15 12:00am", "2015-04-15 11:59am"),
+> [qdate:to_string("Y-m-d h:ia", M) || M <- Mins].
+["2015-04-15 00:00am","2015-04-15 00:15am",
+ "2015-04-15 00:30am","2015-04-15 00:45am",
+ "2015-04-15 01:00am","2015-04-15 01:15am",
+ "2015-04-15 01:30am","2015-04-15 01:45am",
+ "2015-04-15 02:00am","2015-04-15 02:15am",
+ "2015-04-15 02:30am","2015-04-15 02:45am",
+ "2015-04-15 03:00am","2015-04-15 03:15am",
+ "2015-04-15 03:30am","2015-04-15 03:45am",
+ "2015-04-15 04:00am","2015-04-15 04:15am",
+ "2015-04-15 04:30am","2015-04-15 04:45am",
+ "2015-04-15 05:00am","2015-04-15 05:15am",
+ "2015-04-15 05:30am","2015-04-15 05:45am",
+ "2015-04-15 06:00am","2015-04-15 06:15am",
+ "2015-04-15 06:30am","2015-04-15 06:45am",
+ [...]|...]
+```
+
+Also note that the range functions are *inclusive*.
+
 
 ## Thanks
 
@@ -683,6 +767,7 @@ See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGEL
 + Provide a sample qdate.config for users to see
 + Research the viability of [ezic](https://github.com/drfloob/ezic) for a
   timezone backend replacement for `erlang_localtime`.
++ Add age calculation stuff: `age_years(Date)`, `age_minutes(Date)`, etc.
 
 ## Conclusion
 
