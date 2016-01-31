@@ -752,6 +752,20 @@ tz_tests(_) ->
         ?_assertEqual({{2013,3,6},{18,0,0}}, to_date("GMT","3/7/2013 12:00am +0600")),
         ?_assertEqual({{2013,3,6},{12,0,0}}, to_date("CST","3/7/2013 12:00am +0600")),
 
+        %% These next two test check to make sure that the tz database properly
+        %% interprets GMT+/-X timezones (an earlier issue with
+        %% erlang_localtime's tz database had it incrementing/decrementing the
+        %% minute field rather than hours.
+        %%
+        %% It also ensures that GMT+/-X handling is interpreted the way you'd
+        %% intuitively expect, rather than the POSIX way, which is, quite
+        %% frankly, broken.
+        ?_assertEqual({{2013,3,7},{10,0,0}}, to_date("GMT-0","3/7/2013 10:00am GMT")),
+        ?_assertEqual({{2013,3,7},{10,0,0}}, to_date("GMT+0","3/7/2013 10:00am GMT")),
+        ?_assertEqual({{2013,3,7},{9,0,0}}, to_date("GMT-1","3/7/2013 10:00am GMT")),
+        ?_assertEqual({{2013,3,7},{11,0,0}}, to_date("GMT+1","3/7/2013 10:00am GMT")),
+
+
         %% parsing, then reformatting the same time with a different timezone using the php "r" (rfc2822)
         ?_assertEqual("Thu, 07 Mar 2013 12:15:00 -0600",
             to_string("r","CST",to_string("r","EST",{{2013,3,7},{13,15,0}}))),
