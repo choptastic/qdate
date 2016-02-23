@@ -737,6 +737,11 @@ with qdate:
 
 Also note that the range functions are *inclusive*.
 
+## Configuration Sample
+
+There is a sample configuration file can be found in the root of the qdate
+directory. Or you can just [look at it
+here](https://github.com/choptastic/qdate/blob/master/qdate.config).
 
 ## Thanks
 
