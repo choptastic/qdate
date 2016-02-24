@@ -207,7 +207,7 @@ ok
   + `between(A, B) -> true|false` - shortcut for `between(A, now(), B)`
   + `between(A, Op1, Date, Op2, B) -> true|false` - the fully verbose option of
     comparing between. `Op1` and `Op2` are custom operators. For example, if
-    you wanted to do an exclusive between, you can do:
+    you wanted to do an exclusive `between`, you can do:
 	`between(A, '<', Date, '<', B)`
 
 **Note 1:** `Operator` must be an atom.
