@@ -40,7 +40,9 @@
 
 -export([
     compare/2,
-    compare/3
+    compare/3,
+    between/2,
+    between/3
 ]).
 
 -export([
@@ -408,6 +410,12 @@ compare(A, Op, B) ->
         '>='    -> Comp =:= 1 orelse Comp =:= 0;
         '=>'    -> Comp =:= 1 orelse Comp =:= 0
     end.
+
+between(A, B) ->
+    between(unixtime(), A, B).
+
+between(Date, A, B) ->
+    compare(Date, '>=', A) andalso compare(Date, '=<', B).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Date Math       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
