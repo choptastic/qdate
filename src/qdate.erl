@@ -42,7 +42,8 @@
     compare/2,
     compare/3,
     between/2,
-    between/3
+    between/3,
+    between/5
 ]).
 
 -export([
@@ -412,10 +413,13 @@ compare(A, Op, B) ->
     end.
 
 between(A, B) ->
-    between(unixtime(), A, B).
+    between(A, unixtime(), B).
 
-between(Date, A, B) ->
-    compare(Date, '>=', A) andalso compare(Date, '=<', B).
+between(A, Date, B) ->
+    between(A, '=<', Date, '=<', B).
+
+between(A, Op1, Date, Op2, B) ->
+    compare(A, Op1, Date) andalso compare(Date, Op2, B).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Date Math       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
