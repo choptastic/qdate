@@ -190,18 +190,25 @@ ok
 
 `qdate` provides a few convenience functions for performing date comparisons.
 
-  + `compare(A, B)` - Like C's `strcmp`, returns:
+  + `compare(A, B) -> -1|0|1` - Like C's `strcmp`, returns:
     + `0`: `A` and `B` are exactly the same.
     + `-1`: `A` is less than (before) `B`.
     + `1`: `A` is greater than (after) `B`.
-  + `compare(A, Operator, B)` - Operator is an infix comparison operator, and
-    the function will return true if:
+  + `compare(A, Operator, B) -> true|false` - Operator is an infix comparison operator, and
+    the function will return a boolean. Will return `true` if:
     + `'='`, or `'=='` - `A` is the same time as `B`
     + `'/='`, or `'=/='` or `'!='` - `A` is not the same time as `B`
     + `'<'` - `A` is before `B`
     + `'>'` - `A` is after `B`
     + `'=<'` or `'<='` - `A` is before or equal to `B`
     + `'>='` or `'=>'` - `A` is after or equal to `B`
+  + `between(A, Date, B) -> true|false` - The provided `Date` is (inclusively)
+    between `A` and `B`. That is, `A =< Date =< B`.
+  + `between(A, B) -> true|false` - shortcut for `between(A, now(), B)`
+  + `between(A, Op1, Date, Op2, B) -> true|false` - the fully verbose option of
+    comparing between. `Op1` and `Op2` are custom operators. For example, if
+    you wanted to do an exclusive between, you can do:
+	`between(A, '<', Date, '<', B)`
 
 **Note 1:** `Operator` must be an atom.
 
