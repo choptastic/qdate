@@ -4,6 +4,8 @@
   (such as `range_day/3` to get a range of days between a start and end date.
 * Add `beginning_X` functions to return the beginning of the provided precision
   (minute, hour, day, month, or year)
+* Add `between/[2,3,5]` functions for computing whether a date/time is between
+  two others.
 * Update to rebar3 and add hex compatability. (@Licenser)
 * Properly add dependent apps to .app.src (@Licenser)
 * Remove R14 from travis testing.
