@@ -930,8 +930,9 @@ tz_tests(_) ->
         ?_assertEqual(555555555,to_unixtime("1987-08-10 00:59:15 GMT")),
         ?_assertEqual({555,555555,0},to_now("1987-08-10 00:59:15 GMT")),
         ?_assertEqual(ok, set_timezone("GMT")),
-        ?_assertEqual({{1970, 1, 1}, {1, 0, 0}}, to_date("CET", "1970-01-01T00:00:00Z"))
-
+        ?_assertEqual({{1970, 1, 1}, {1, 0, 0}}, to_date("CET", "1970-01-01T00:00:00Z")),
+        ?_assertEqual(ok, set_timezone("UTC")),
+        ?_assertEqual(1521945120, to_unixtime("2018-3-25T2:32:00"))
     ]}.
 
 
