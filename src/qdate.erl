@@ -655,8 +655,8 @@ range_years(Interval, Start, Finish) ->
 
 parse_relative({relative, Date, Relation}) when is_atom(Relation) ->
     parse_relative({relative, Date, atom_to_list(Relation)});
-parse_relative({relative, Date, Relation})  ->
-    {OpStr, NumStr, UnitStr} = parse_actual_relation(Relation), 
+parse_relative({relative, Date, Relation}) when is_list(Relation); is_binary(Relation) ->
+    {OpStr, NumStr, UnitStr} = parse_actual_relation(Relation),
     {Num, Unit} = normalize_relative_matches(OpStr, NumStr, UnitStr),
     add_unit(Unit, Num, Date);
 parse_relative(now) ->
@@ -665,8 +665,10 @@ parse_relative("now") ->
     unixtime();
 parse_relative(<<"now">>) ->
     unixtime();
-parse_relative(Relation) ->
-    parse_relative({relative, unixtime(), Relation}).
+parse_relative(Relation) when is_list(Relation); is_binary(Relation) ->
+    parse_relative({relative, unixtime(), Relation});
+parse_relative(_) ->
+    undefined.
 
 
 %% I would do this function recursively, but the return order of arguments
@@ -873,7 +875,8 @@ try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
             throw({invalid_parser_return_value,[{parser_key,ParserKey},{return,Other}]})
     catch
         Error:Reason -> 
-            throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}]})
+            Stacktrace = erlang:get_stacktrace(),
+            throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}, {stacktrace, Stacktrace}]})
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
