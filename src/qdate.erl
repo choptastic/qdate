@@ -267,7 +267,7 @@ to_date(ToTZ, Disambiguate, RawDate)  ->
             {ParsedDate,ExtractedTZ};
         {ParsedDate,ParsedTZ} ->
             {ParsedDate,ParsedTZ}
-    end,    
+    end,
     try raw_to_date(RawDate3) of
         D={{_,_,_},{_,_,_}} ->
             date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ);
@@ -403,10 +403,12 @@ compare(A, Op, B) ->
         '=/='   -> Comp =/= 0;
         '/='    -> Comp =/= 0;
 
+        'before'-> Comp =:= -1;
         '<'     -> Comp =:= -1;
         '<='    -> Comp =:= -1 orelse Comp =:= 0;
         '=<'    -> Comp =:= -1 orelse Comp =:= 0;
 
+        'after' -> Comp =:= 1;
         '>'     -> Comp =:= 1;
         '>='    -> Comp =:= 1 orelse Comp =:= 0;
         '=>'    -> Comp =:= 1 orelse Comp =:= 0
