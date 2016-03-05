@@ -768,6 +768,8 @@ try_parsers(_RawDate,[]) ->
     undefined;
 try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
     try Parser(RawDate) of
+        Timestamp when is_integer(Timestamp) ->
+            {Timestamp, undefined};
         {{_,_,_},{_,_,_}} = DateTime ->
             {DateTime,undefined};
         {DateTime={{_,_,_},{_,_,_}},Timezone} ->
