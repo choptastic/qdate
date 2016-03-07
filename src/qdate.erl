@@ -656,9 +656,12 @@ range_years(Interval, Start, Finish) ->
 parse_relative({relative, Date, Relation}) when is_atom(Relation) ->
     parse_relative({relative, Date, atom_to_list(Relation)});
 parse_relative({relative, Date, Relation}) when is_list(Relation); is_binary(Relation) ->
-    {OpStr, NumStr, UnitStr} = parse_actual_relation(Relation),
-    {Num, Unit} = normalize_relative_matches(OpStr, NumStr, UnitStr),
-    add_unit(Unit, Num, Date);
+    case parse_actual_relation(Relation) of
+        undefined -> undefined;
+        {OpStr, NumStr, UnitStr} ->
+	    {Num, Unit} = normalize_relative_matches(OpStr, NumStr, UnitStr),
+	    add_unit(Unit, Num, Date)
+    end;
 parse_relative(now) ->
     unixtime();
 parse_relative("now") ->
