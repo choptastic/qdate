@@ -61,6 +61,8 @@
     add_months/1,
     add_years/2,
     add_years/1,
+    add_unit/2,
+    add_unit/3,
     add_date/2
 ]).
 
@@ -94,6 +96,9 @@
     clear_timezone/1
 ]).
 
+-export([
+    parse_relative/1
+]).
 
 %% Exported for API compatibility with ec_date
 -export([
@@ -267,7 +272,7 @@ to_date(ToTZ, Disambiguate, RawDate)  ->
             {ParsedDate,ExtractedTZ};
         {ParsedDate,ParsedTZ} ->
             {ParsedDate,ParsedTZ}
-    end,    
+    end,
     try raw_to_date(RawDate3) of
         D={{_,_,_},{_,_,_}} ->
             date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ);
@@ -309,7 +314,8 @@ to_unixtime(Date) ->
 
 to_unixtime(_, Unixtime) when is_integer(Unixtime) ->
     Unixtime;
-to_unixtime(_, {MegaSecs,Secs,_}) ->
+
+to_unixtime(_, {MegaSecs,Secs,_}) when is_integer(MegaSecs), is_integer(Secs) ->
     MegaSecs*1000000 + Secs;
 to_unixtime(Disamb, ToParse) ->
     %% We want to treat all unixtimes as GMT
@@ -403,10 +409,12 @@ compare(A, Op, B) ->
         '=/='   -> Comp =/= 0;
         '/='    -> Comp =/= 0;
 
+        'before'-> Comp =:= -1;
         '<'     -> Comp =:= -1;
         '<='    -> Comp =:= -1 orelse Comp =:= 0;
         '=<'    -> Comp =:= -1 orelse Comp =:= 0;
 
+        'after' -> Comp =:= 1;
         '>'     -> Comp =:= 1;
         '>='    -> Comp =:= 1 orelse Comp =:= 0;
         '=>'    -> Comp =:= 1 orelse Comp =:= 0
@@ -480,6 +488,39 @@ add_years(Years, Date) ->
 
 add_years(Years) ->
     add_years(Years, os:timestamp()).
+
+add_unit(second, Value, Date) ->
+    add_unit(seconds, Value, Date);
+add_unit(seconds, Value, Date) ->
+    add_seconds(Value, Date);
+add_unit(minute, Value, Date) ->
+    add_unit(minutes, Value, Date);
+add_unit(minutes, Value, Date) ->
+    add_minutes(Value, Date);
+add_unit(hour, Value, Date) ->
+    add_unit(hours, Value, Date);
+add_unit(hours, Value, Date) ->
+    add_hours(Value, Date);
+add_unit(day, Value, Date) ->
+    add_unit(days, Value, Date);
+add_unit(days, Value, Date) ->
+    add_days(Value, Date);
+add_unit(week, Value, Date) ->
+    add_unit(weeks, Value, Date);
+add_unit(weeks, Value, Date) ->
+    add_weeks(Value, Date);
+add_unit(month, Value, Date) ->
+    add_unit(months, Value, Date);
+add_unit(months, Value, Date) ->
+    add_months(Value, Date);
+add_unit(year, Value, Date) ->
+    add_unit(years, Value, Date);
+add_unit(years, Value, Date) ->
+    add_years(Value, Date).
+
+add_unit(Unit, Value) ->
+    add_unit(Unit, Value, os:timestamp()).
+
 
 add_date({{AddY, AddM, AddD}, {AddH, AddI, AddS}}, Date) ->
     {{Y, M, D}, {H, I, S}} = to_date(Date),
@@ -609,6 +650,60 @@ range_years(Interval, Start, Finish) ->
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%  Relative Date Parsing  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parse_relative({relative, Date, Relation}) when is_atom(Relation) ->
+    parse_relative({relative, Date, atom_to_list(Relation)});
+parse_relative({relative, Date, Relation}) when is_list(Relation); is_binary(Relation) ->
+    {OpStr, NumStr, UnitStr} = parse_actual_relation(Relation),
+    {Num, Unit} = normalize_relative_matches(OpStr, NumStr, UnitStr),
+    add_unit(Unit, Num, Date);
+parse_relative(now) ->
+    unixtime();
+parse_relative("now") ->
+    unixtime();
+parse_relative(<<"now">>) ->
+    unixtime();
+parse_relative(Relation) when is_list(Relation); is_binary(Relation) ->
+    parse_relative({relative, unixtime(), Relation});
+parse_relative(_) ->
+    undefined.
+
+
+%% I would do this function recursively, but the return order of arguments
+%% inconsistent, so I just leave it like this. It's a little nasty to have the
+%% nested case expressions, but I can deal with it.
+parse_actual_relation(Relation) ->
+    PrefixRE = "^(\\-|\\+|in)\\s?(\\d+) (second|minute|hour|day|week|month|year)s?$",
+    SuffixRE = "^(\\d+) (second|minute|hour|day|week|month|year)s\\s?(ago|from now)?$",
+    case re:run(Relation, PrefixRE, [{capture, all_but_first, list}]) of
+        nomatch ->
+            case re:run(Relation, SuffixRE, [{capture, all_but_first, list}]) of
+                nomatch -> undefined;
+                {match, [NumStr, UnitStr, OpStr]} ->
+                    {OpStr, NumStr, UnitStr}
+            end;
+        {match, [OpStr, NumStr, UnitStr]} ->
+            {OpStr, NumStr, UnitStr}
+    end.
+
+normalize_relative_matches(OpStr, NumStr, UnitStr) ->
+    Op = normalize_relative_op(OpStr),
+    Num = list_to_integer(Op ++ NumStr),
+    Unit = list_to_existing_atom(UnitStr),
+    {Num, Unit}.
+
+normalize_relative_op(Op) ->
+    case Op of
+        "+"         -> "+";
+        "-"         -> "-";
+        "ago"       -> "-";
+        "from now"  -> "+";
+        "in"        -> "+"
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Timezone Stuff   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -635,6 +730,8 @@ extract_timezone(DateString) when is_list(DateString) ->
     end;
 extract_timezone(Date={{_,_,_},{_,_,_}}) ->
     {Date, ?DETERMINE_TZ};
+extract_timezone(Rel={relative, _, _}) ->
+    {Rel, "GMT"};
 extract_timezone(Now={_,_,_}) ->
     {Now, "GMT"};
 extract_timezone({MiscDate,TZ}) ->
@@ -766,6 +863,8 @@ try_parsers(_RawDate,[]) ->
     undefined;
 try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
     try Parser(RawDate) of
+        Timestamp when is_integer(Timestamp) ->
+            {Timestamp, undefined};
         {{_,_,_},{_,_,_}} = DateTime ->
             {DateTime,undefined};
         {DateTime={{_,_,_},{_,_,_}},Timezone} ->
@@ -776,7 +875,8 @@ try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
             throw({invalid_parser_return_value,[{parser_key,ParserKey},{return,Other}]})
     catch
         Error:Reason -> 
-            throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}]})
+            Stacktrace = erlang:get_stacktrace(),
+            throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}, {stacktrace, Stacktrace}]})
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
