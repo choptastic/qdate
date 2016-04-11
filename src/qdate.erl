@@ -1,8 +1,10 @@
 % vim: ts=4 sw=4 et
-% Copyright (c) 2013-2015 Jesse Gumm
+% Copyright (c) 2013-2016 Jesse Gumm
 % See LICENSE for licensing information.
 %
 -module(qdate).
+
+-compile(export_all).
 
 -export([
     start/0,
@@ -867,7 +869,7 @@ try_parsers(_RawDate,[]) ->
 try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
     try Parser(RawDate) of
         Timestamp when is_integer(Timestamp) ->
-            {Timestamp, undefined};
+            {Timestamp, "GMT"};
         {{_,_,_},{_,_,_}} = DateTime ->
             {DateTime,undefined};
         {DateTime={{_,_,_},{_,_,_}},Timezone} ->
