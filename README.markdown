@@ -455,8 +455,35 @@ the crash.
 
 **Another Note:** Custom parsers are expected to return either:
   + A `datetime()` tuple. (ie {{2012,12,21},{14,45,23}}).
+  + An integer, which represents the Unix timestamp.
   + The atom `undefined` if this parser is not a match for the supplied value
 
+#### Included Parser: Relative Times
+
+`qdate` ships with an optional relative time parser. To speed up performance
+(since this parser uses regular expressions), this parser is disabled by
+default. But if you wish to use it, make sure you call
+`qdate:register_parser(parse_relative, fun qdate:parse_relative/1)`. 
+
+Doing this allows you to parse relative time strings of the following formats:
+
+  + "1 hour ago"
+  + "-15 minutes"
+  + "in 45 days"
+  + "+2 years"
+
+And doing so allows you to construct slightly more readable comparison calls
+for sometimes common comparisons. For example:
+
+```erlang
+> qdate:between("-15 minutes", Date, "+15 minutes").
+```
+
+Is equivilant to:
+
+```erlang
+> qdate:between(qdate:add_minutes(-15), Date, qdate:add_minutes(15)).
+```
 
 ### Registering Custom Formats
 
