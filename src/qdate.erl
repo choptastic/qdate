@@ -1035,7 +1035,11 @@ tz_tests(_) ->
         ?_assertEqual(ok, set_timezone("GMT")),
         ?_assertEqual({{1970, 1, 1}, {1, 0, 0}}, to_date("CET", "1970-01-01T00:00:00Z")),
         ?_assertEqual(ok, set_timezone("UTC")),
-        ?_assertEqual(1521945120, to_unixtime("2018-3-25T2:32:00"))
+        ?_assertEqual(1521945120, to_unixtime("2018-3-25T2:32:00")),
+        ?_assertEqual(true, between("-1 seconds", os:timestamp(), "+1 seconds")),
+        ?_assertEqual(true, between("60 hours ago", unixtime(), "in 15 days")),
+        ?_assertEqual(false, between("+1 seconds", qdate:to_string("n/j/Y g:ia"), "+2 seconds")),
+        ?_assertEqual(false, between("5 seconds ago","1 second ago"))
     ]}.
 
 
@@ -1117,6 +1121,7 @@ start_test() ->
     set_timezone(?USER_KEY,?USER_TZ),
     register_parser(compressed,fun compressed_parser/1),
     register_parser(microsoft_date,fun microsoft_parser/1),
+    register_parser(parse_relative, fun parse_relative/1),
     register_format(shortdate,"n/j/Y"),
     register_format(longdate,"n/j/Y g:ia").
 
