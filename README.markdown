@@ -473,16 +473,12 @@ Doing this allows you to parse relative time strings of the following formats:
   + "+2 years"
 
 And doing so allows you to construct slightly more readable comparison calls
-for sometimes common comparisons. For example:
+for sometimes common comparisons. For example, the following two calls are identical:
 
 ```erlang
-> qdate:between("-15 minutes", Date, "+15 minutes").
-```
+qdate:between("-15 minutes", Date, "+15 minutes").
 
-Is equivilant to:
-
-```erlang
-> qdate:between(qdate:add_minutes(-15), Date, qdate:add_minutes(15)).
+qdate:between(qdate:add_minutes(-15), Date, qdate:add_minutes(15)).
 ```
 
 ### Registering Custom Formats
