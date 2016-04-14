@@ -8,6 +8,9 @@
   two others.
 * Update to rebar3 and add hex compatability. (@Licenser)
 * Properly add dependent apps to .app.src (@Licenser)
+* Add an optional "relative date/time parser".
+* Fix: Ensure `get_timezone()` returns the default timezone (from config) if it
+  hasn't been set by `get_timezone()`
 * Remove R14 from travis testing.
 
 ## 0.4.2
