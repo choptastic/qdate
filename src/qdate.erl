@@ -679,7 +679,7 @@ parse_relative(_) ->
 %% nested case expressions, but I can deal with it.
 parse_actual_relation(Relation) ->
     PrefixRE = "^(\\-|\\+|in)\\s?(\\d+) (second|minute|hour|day|week|month|year)s?$",
-    SuffixRE = "^(\\d+) (second|minute|hour|day|week|month|year)s\\s?(ago|from now)?$",
+    SuffixRE = "^(\\d+) (second|minute|hour|day|week|month|year)s?\\s?(ago|from now)?$",
     case re:run(Relation, PrefixRE, [{capture, all_but_first, list}]) of
         nomatch ->
             case re:run(Relation, SuffixRE, [{capture, all_but_first, list}]) of
