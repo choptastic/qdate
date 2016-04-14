@@ -815,7 +815,7 @@ set_timezone(Key,TZ) ->
     qdate_srv:set_timezone(Key, TZ).
 
 get_timezone() ->
-    qdate_srv:get_timezone().
+    ?DETERMINE_TZ.
 
 get_timezone(Key) ->
     qdate_srv:get_timezone(Key).
