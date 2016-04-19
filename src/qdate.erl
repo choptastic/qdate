@@ -39,6 +39,19 @@
 ]).
 
 -export([
+     end_minute/1,
+     end_minute/0,
+     end_hour/1,
+     end_hour/0,
+     end_day/1,
+     end_day/0,
+     end_month/1,
+     end_month/0,
+     end_year/1,
+     end_year/0
+]).
+
+-export([
     compare/2,
     compare/3,
     between/2,
@@ -385,6 +398,48 @@ beginning_year() ->
 beginning_year(Date) ->
     {{Y,_,_},{_,_,_}} = to_date(Date),
     {{Y,1,1},{0,0,0}}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% End of Period (day/hour, etc)  %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+end_minute() ->
+    end_minute({date(),time()}).
+
+end_minute(Date) ->
+    {{Y,M,D},{H,I,_}} = to_date(Date),
+    {{Y,M,D},{H,I,59}}.
+
+end_hour() ->
+    end_hour({date(),time()}).
+
+end_hour(Date) ->
+    {{Y,M,D},{H,_,_}} = to_date(Date),
+    {{Y,M,D},{H,59,59}}.
+
+end_day() ->
+    end_day({date(),time()}).
+
+end_day(Date) ->
+    {{Y,M,D},_} = to_date(Date),
+    {{Y,M,D},{23,59,59}}.
+
+end_month() ->
+    end_month({date(), time()}).
+
+end_month(Date) ->
+    Beginning = beginning_month(Date),
+    add_seconds(-1, add_months(1, Beginning)).
+
+end_year() ->
+    end_year({date(),time()}).
+
+end_year(Date) ->
+    {{Y,_,_},_} = to_date(Date),
+    {{Y,12,31},{23,59,59}}.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Comparisons     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
