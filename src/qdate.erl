@@ -368,8 +368,8 @@ beginning_minute() ->
     beginning_minute({date(),time()}).
 
 beginning_minute(Date) ->
-    {{Y,M,D},{H,M,_}} = to_date(Date),
-    {{Y,M,D},{H,M,0}}.
+    {{Y,M,D},{H,I,_}} = to_date(Date),
+    {{Y,M,D},{H,I,0}}.
 
 beginning_hour() ->
     beginning_hour({date(),time()}).
