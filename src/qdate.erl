@@ -379,7 +379,7 @@ beginning_hour(Date) ->
     {{Y,M,D},{H,0,0}}.
 
 beginning_day() ->
-    beginning_day({date(),time()}).
+    beginning_day(unixtime()).
 
 beginning_day(Date) ->
     {{Y,M,D},{_,_,_}} = to_date(Date),
