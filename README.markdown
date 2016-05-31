@@ -98,7 +98,9 @@ will infer the timezone in the following order.
     `set_timezone/1` only applies to that *specific* process. If none is
     specified.
   + If no timezone is specified for the process, `qdate` looks at the `qdate`
-    application variable `default_timezone`.
+	application variable `default_timezone`. `default_timezone` can be either a
+    hard-specified timezone, or a `{Module, Function}` tuple.  The tuple format
+    should return either a timezone or the atom `undefined`.
   + If no timezone is specified by either of the above, `qdate` assumes "GMT"
     for all dates.
   + A timezone value of `auto` will act as if no timezone is specified.

@@ -125,16 +125,6 @@
 %% 1970-01-01 12:00am
 -define(UNIXTIME_BASE,62167219200).
 
-%% This is the timezone only if the qdate application variable 
-%% "default_timezone" isn't set or is set to undefined.
-%% It's recommended that your app sets the var in a config, or at least using
-%%
-%%      application:set_env(qdate, default_timezone, "GMT").
-%%
--define(DEFAULT_TZ, case application:get_env(qdate, default_timezone) of 
-                        undefined -> "GMT";
-                        {ok, TZ} -> TZ 
-                    end).
 
 -define(DETERMINE_TZ, determine_timezone()).
 -define(DEFAULT_DISAMBIG, prefer_standard).
@@ -825,9 +815,23 @@ extract_timezone_helper(RevDate, [TZ | TZs]) when length(RevDate) >= length(TZ) 
 extract_timezone_helper(RevDate, [_TZ | TZs]) ->
     extract_timezone_helper(RevDate, TZs).
 
+
+%% This is the timezone only if the qdate application variable 
+%% "default_timezone" isn't set or is set to undefined.
+%% It's recommended that your app sets the var in a config, or at least using
+%%
+%%      application:set_env(qdate, default_timezone, "GMT").
+%%
+default_timezone() ->
+    case application:get_env(qdate, default_timezone) of 
+        undefined -> "GMT";
+        {ok, {Mod, Fun}} -> Mod:Fun();
+        {ok, TZ} -> TZ 
+    end.
+
 determine_timezone() ->
     case qdate_srv:get_timezone() of
-        undefined -> ?DEFAULT_TZ;
+        undefined -> default_timezone();
         TZ -> TZ
     end.
 
