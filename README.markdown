@@ -253,6 +253,11 @@ before comparing (so it's only really comparing integers, which is quite fast).
 as the last argument. This follows the pattern in Erlang/OTP to put options as
 the last argument (for example, `re:run/3`)
 
+**Note 3:** You'll notice that qdate's sorting retains the original terms (in
+the example above, we compared a datetime tuple, unix timestamp, and two
+strings (along with a number of non-dates, which were just prepended to the
+front of the list).
+
 ### Timezone Functions
 
   + `set_timezone(Key, TZ)` - Set the timezone to TZ for the key `Key`
