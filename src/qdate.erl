@@ -60,6 +60,12 @@
 ]).
 
 -export([
+    sort/1,
+    sort/2,
+    sort/3
+]).
+
+-export([
     add_seconds/2,
     add_seconds/1,
     add_minutes/2,
@@ -473,6 +479,71 @@ between(A, Date, B) ->
 
 between(A, Op1, Date, Op2, B) ->
     compare(A, Op1, Date) andalso compare(Date, Op2, B).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Sorting    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+sort(List) ->
+    sort('=<', List).
+
+sort(Op, List) ->
+    sort(Op, List, [{non_date, back}]).
+
+sort(Op, List, Opts) ->
+    WithNorm = add_sort_normalization(List),
+    SortFun = make_sort_fun(Op, Opts),
+    Sorted = lists:sort(SortFun, WithNorm),
+    strip_sort_normalization(Sorted).
+
+%% Normalization pre-processes the dates (converting them to unixtimes for easy
+%% comparison, and also tags non-dates (dates that crashed during parsing) as such
+add_sort_normalization(List) ->
+    lists:map(fun(Date) ->
+        Sortable = try to_unixtime(Date)
+                   catch _:_ -> {non_date, Date}
+                   end,
+        {Sortable, Date}
+    end, List).
+
+%% Remove the normalization tag to return the original term
+strip_sort_normalization(List) ->
+    [Date || {_, Date} <- List].
+
+make_sort_fun(Op, Opts) ->
+    DateComp = sort_op_comp_fun(Op),
+    NonDateOpt = proplists:get_value(non_date, Opts, back),
+    
+    fun({{non_date, A}, _}, {{non_date, B},_}) ->
+            DateComp(A,B);
+       ({{non_date, _}, _}, _) when NonDateOpt == front ->
+            true;
+       ({{non_date, _}, _}, _) when NonDateOpt == back ->
+            false;
+       (_, {{non_date, _}, _}) when NonDateOpt == front ->
+            false;
+       (_, {{non_date, _}, _}) when NonDateOpt == back ->
+            true;
+       (A, B) ->
+            DateComp(A, B)
+    end.
+   
+sort_op_comp_fun(Op) ->
+    fun(A, B) ->
+        case Op of
+            'before'-> A < B;
+            '<'     -> A < B;
+            '<='    -> A =< B;
+            '=<'    -> A =< B;
+
+            'after' -> A > B;
+            '>'     -> A > B;
+            '>='    -> A >= B;
+            '=>'    -> A >= B
+        end
+    end.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Date Math       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
