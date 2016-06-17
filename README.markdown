@@ -217,6 +217,42 @@ ok
 **Note 2:** These functions will properly compare times with different timezones
 (for example: `compare("12am CST",'==',"1am EST")` will properly return true)
 
+### Sorting
+
+`qdate` also provides a convenience functions for sorting lists of dates/times:
+
+  + `sort(List)` - Sort the list in ascending order of earliest to latest.
+  + `sort(Op, List)` - Sort the list where `Op` is one of the following:
+    + `'<'` or `'=<'` or `'<='` - Sort ascending
+    + `'>'` or `'>='` or `'=>'` - Sort descending
+  + `sort(Op, List, Opts)` - Sort the list according to the `Op`, with options provided in `Opts`. `Opts` is a proplist of the following options:
+    + `{non_dates, NonDates}` - Tells it how to handle non-dates.  `NonDates` can be any of the following:
+      + `back` **(default)** - put any non-dates at the end (the back) of the list
+      + `front` - put any non-dates at the beginning of the list
+      + `crash` - if there are any non-dates, crash.
+
+Example:
+
+```erlang
+	 1> Dates = ["non date string", <<"garbage">>,
+		1466200861, "2011-01-01", "7pm",
+		{{1999,6,21},{5,30,0}}, non_date_atom, {some_tuple,123}].
+	 2> qdate:sort('>=', Dates, [{non_dates, front}]).
+     [<<"garbage">>,"non date string",
+	  {some_tuple,123},
+	  non_date_atom,1466200861,"2011-01-01",
+	  {{1999,6,21},{5,30,0}},
+	  "7pm"]
+```
+
+**Note 1:** This sorting is optimized to be much faster than using a home-grown
+sort using the `compare` functions, as this normalizes the items in the list
+before comparing (so it's only really comparing integers, which is quite fast).
+
+**Note 2:** This is one of the few qdate functions that don't have the "Date"
+as the last argument. This follows the pattern in Erlang/OTP to put options as
+the last argument (for example, `re:run/3`)
+
 ### Timezone Functions
 
   + `set_timezone(Key, TZ)` - Set the timezone to TZ for the key `Key`

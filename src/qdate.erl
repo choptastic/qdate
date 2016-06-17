@@ -489,20 +489,22 @@ sort(List) ->
     sort('=<', List).
 
 sort(Op, List) ->
-    sort(Op, List, [{non_date, back}]).
+    sort(Op, List, [{non_dates, back}]).
 
 sort(Op, List, Opts) ->
-    WithNorm = add_sort_normalization(List),
+    NonDateOpt = proplists:get_value(non_dates, Opts, back),
+    WithNorm = add_sort_normalization(List, NonDateOpt),
     SortFun = make_sort_fun(Op, Opts),
     Sorted = lists:sort(SortFun, WithNorm),
     strip_sort_normalization(Sorted).
 
 %% Normalization pre-processes the dates (converting them to unixtimes for easy
 %% comparison, and also tags non-dates (dates that crashed during parsing) as such
-add_sort_normalization(List) ->
+add_sort_normalization(List, NonDateOpt) ->
     lists:map(fun(Date) ->
         Sortable = try to_unixtime(Date)
-                   catch _:_ -> {non_date, Date}
+                   catch _:_ when NonDateOpt=/=crash ->
+                        {non_date, Date}
                    end,
         {Sortable, Date}
     end, List).
@@ -511,9 +513,8 @@ add_sort_normalization(List) ->
 strip_sort_normalization(List) ->
     [Date || {_, Date} <- List].
 
-make_sort_fun(Op, Opts) ->
+make_sort_fun(Op, NonDateOpt) ->
     DateComp = sort_op_comp_fun(Op),
-    NonDateOpt = proplists:get_value(non_date, Opts, back),
     
     fun({{non_date, A}, _}, {{non_date, B},_}) ->
             DateComp(A,B);
