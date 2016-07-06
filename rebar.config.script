@@ -10,6 +10,6 @@ case erlang:function_exported(rebar3, main, 1) of
         %% profiles
         [{deps, [
             {erlware_commons, "", {git, "git://github.com/erlware/erlware_commons", {tag, "v0.15.0"}}},
-            {erlang_localtime, "", {git, "git://github.com/choptastic/erlang_localtime", {branch, master}}}
+            {qdate_localtime, "", {git, "git://github.com/choptastic/qdate_localtime", {tag, "1.1.0"}}}
         ]} | lists:keydelete(deps, 1, CONFIG)]
 end.
