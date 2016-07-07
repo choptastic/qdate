@@ -1,11 +1,11 @@
 language: erlang
 script: "make test"
 otp_release:
+  - 19.0
+  - 18.0
   - 17.4
   - 17.1
   - 17.0
   - R16B
-  - R15B02
-  - R15B01
-  - R15B
-before_script: "sudo apt-get --yes --force-yes install libpam-runtime"
+  - R15B03
+before_script: "sudo apt-get --yes --force-yes install libpam-runtime python-software-properties"
