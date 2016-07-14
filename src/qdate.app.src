@@ -5,7 +5,7 @@
   {registered, []},
   {applications, [
                   kernel,
-                  erlang_localtime,
+                  qdate_localtime,
                   erlware_commons,
                   stdlib
                  ]},
