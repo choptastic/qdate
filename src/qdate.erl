@@ -160,14 +160,15 @@ to_string(FormatKey, ToTZ, Disambiguate, Date) when is_atom(FormatKey) orelse is
 to_string(Format, ToTZ, Disambiguate, Date) when is_binary(Format) ->
     list_to_binary(to_string(binary_to_list(Format), ToTZ, Disambiguate, Date));
 to_string(Format, ToTZ, Disambiguate, Date) when is_list(Format) ->
+    {DateNoTZ, FromTZ} = parse_timezone(Date),
     %% it may seem odd that we're ensuring it here, and then again
     %% as one of the last steps of the to_date process, but we need
     %% the actual name for the strings for the PHP "T" and "e", so
     %% we extract the Timezone in case ToTZ is actually a timezone key
     %% Then we can pass it on to to_date as well. That way we don't have
     %% to do it twice, since it's already ensured.
-    ActualToTZ = ensure_timezone(ToTZ),
-    case to_date(ActualToTZ, Disambiguate, Date) of
+    ActualToTZ = ensure_timezone(ToTZ, FromTZ),
+    case to_date(ActualToTZ, Disambiguate, Date, DateNoTZ, FromTZ) of
         {ambiguous, Standard, Daylight} ->
             {ambiguous,
                 to_string_worker(Format, ActualToTZ, prefer_standard, Standard),
@@ -264,25 +265,20 @@ nparse(String) ->
 
 to_date(RawDate) ->
     to_date(?DETERMINE_TZ, RawDate).
-
 to_date(ToTZ, RawDate) ->
     to_date(ToTZ, ?DEFAULT_DISAMBIG, RawDate).
-
-to_date(ToTZ, Disambiguate, RawDate) when is_binary(RawDate) ->
-    to_date(ToTZ, Disambiguate, binary_to_list(RawDate));
 to_date(ToTZ, Disambiguate, RawDate) when is_binary(ToTZ) ->
     to_date(binary_to_list(ToTZ), Disambiguate, RawDate);
-to_date(ToTZ, Disambiguate, RawDate)  ->
-    {ExtractedDate, ExtractedTZ} = extract_timezone(RawDate),
-    {RawDate3, FromTZ} = case try_registered_parsers(RawDate) of
-        undefined ->
-            {ExtractedDate, ExtractedTZ};
-        {ParsedDate,undefined} ->
-            {ParsedDate,ExtractedTZ};
-        {ParsedDate,ParsedTZ} ->
-            {ParsedDate,ParsedTZ}
-    end,
-    try raw_to_date(RawDate3) of
+to_date(ToTZ, Disambiguate, RawDate) ->
+    {RawDateNoTZ, FromTZ} = parse_timezone(RawDate),
+    to_date(ToTZ, Disambiguate, RawDate, RawDateNoTZ, FromTZ).
+
+to_date(ToTZ, Disambiguate, RawDate, RawDateNoTZ, FromTZ) when is_binary(RawDate)  ->
+    to_date(ToTZ, Disambiguate, binary_to_list(RawDate), RawDateNoTZ, FromTZ);
+to_date(ToTZ, Disambiguate, RawDate, RawDateNoTZ, FromTZ) when is_binary(RawDateNoTZ)  ->
+    to_date(ToTZ, Disambiguate, RawDate, binary_to_list(RawDateNoTZ), FromTZ);
+to_date(ToTZ, Disambiguate, RawDate, RawDateNoTZ, FromTZ)  ->
+    try raw_to_date(RawDateNoTZ) of
         D={{_,_,_},{_,_,_}} ->
             date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ);
         {{Year, Month, Date},{Hour,Minute,Second,_Millis}} ->
@@ -305,6 +301,19 @@ raw_to_date(Now = {_,_,_}) ->
     calendar:now_to_datetime(Now);
 raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
     Date.
+
+parse_timezone(RawDate) when is_binary(RawDate) ->
+    parse_timezone(binary_to_list(RawDate));
+parse_timezone(RawDate) ->
+    {ExtractedDate, ExtractedTZ} = extract_timezone(RawDate),
+    case try_registered_parsers(RawDate) of
+        undefined ->
+            {ExtractedDate, ExtractedTZ};
+        {ParsedDate,undefined} ->
+            {ParsedDate, ExtractedTZ};
+        {ParsedDate, ParsedTZ} ->
+            {ParsedDate, ParsedTZ}
+    end.
 
 get_deterministic_datetime() ->
     DateZero = {1970,1,1},
@@ -914,7 +923,7 @@ date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) when is_integer(FromTZ) ->
     NewDate = localtime:adjust_datetime(Date, FromTZ),
     date_tz_to_tz(NewDate, Disambiguate, "GMT", ToTZ);
 date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) ->
-    ActualToTZ = ensure_timezone(ToTZ), 
+    ActualToTZ = ensure_timezone(ToTZ, FromTZ),
     case Disambiguate of
         prefer_standard ->
             localtime:local_to_local(Date, FromTZ, ActualToTZ);
@@ -951,16 +960,18 @@ get_timezone() ->
 get_timezone(Key) ->
     qdate_srv:get_timezone(Key).
 
-ensure_timezone(auto) ->
+ensure_timezone(retain, FromTZ) ->
+    FromTZ;
+ensure_timezone(auto, _) ->
     ?DETERMINE_TZ;
-ensure_timezone(Key) when is_atom(Key) orelse is_tuple(Key) ->
+ensure_timezone(Key, _) when is_atom(Key) orelse is_tuple(Key) ->
     case get_timezone(Key) of
         undefined -> throw({timezone_key_not_found,Key});
         ToTZ -> ToTZ
     end;
-ensure_timezone(TZ) when is_binary(TZ) ->
+ensure_timezone(TZ, _) when is_binary(TZ) ->
     binary_to_list(TZ);
-ensure_timezone(TZ) when is_list(TZ) ->
+ensure_timezone(TZ, _) when is_list(TZ) ->
     TZ.
 
 clear_timezone() ->
@@ -1170,7 +1181,10 @@ tz_tests(_) ->
         ?_assertEqual(true, between("-1 seconds", os:timestamp(), "+1 seconds")),
         ?_assertEqual(true, between("60 hours ago", unixtime(), "in 15 days")),
         ?_assertEqual(false, between("+1 seconds", qdate:to_string("n/j/Y g:ia"), "+2 seconds")),
-        ?_assertEqual(false, between("5 seconds ago","1 second ago"))
+        ?_assertEqual(false, between("5 seconds ago","1 second ago")),
+
+        ?_assertEqual("CST", to_string("T", retain, "3/7/2013 1:00am CST")),
+        ?_assertEqual({{2013,3,7},{1,0,0}}, to_date(retain, "3/7/2013 1:00am CST"))
     ]}.
 
 
