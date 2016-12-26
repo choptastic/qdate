@@ -112,7 +112,8 @@
     get_timezone/0,
     get_timezone/1,
     clear_timezone/0,
-    clear_timezone/1
+    clear_timezone/1,
+    parse_timezone/1
 ]).
 
 -export([
