@@ -400,7 +400,10 @@ beginning_year(Date) ->
 beginning_week(Date) ->
     beginning_week(1, Date).
 
-beginning_week(BeginningDayOfWeek, Date0) ->
+beginning_week(BeginningDayOfWeek, Date0) when
+        BeginningDayOfWeek >= 1,
+        BeginningDayOfWeek =< 7,
+        is_integer(BeginningDayOfWeek) ->
     {DateOnly, _} = Date = to_date(Date0),
     CurDOW = calendar:day_of_the_week(DateOnly),
     if

@@ -710,6 +710,21 @@ There are also 0-arity versions of the above, in which `Date` is assumed to be
 "right now". For example, calling `qdate:beginning_month()` would return
 midnight on the first day of the current month.
 
+### Beginning of Week
+
+qdate can also do a special "beginning" case, particularly the "beginning of
+the week" calculation.  This has two forms, specifically:
+
+   + `beginning_week(Date)` - Assumes the beginning of the week is Monday
+     (chosen because Erlang's calendar:day_of_the_week uses 1=Monday and
+     7=Sunday).
+   + `beginning_week(DayOfWeek, Date)` - Calculates the beginning of the week
+     based on the provided `DayOfWeek`. Valid values for DayOfWeek are 1-7,
+     where 1=Monday, and 7=Sunday.
+
+These all return 12am on the day that is the first day of the week of the
+provided date.
+
 ## Date Arithmetic
 
 The current implementation of qdate's date arithmetic returns Unixtimes.
