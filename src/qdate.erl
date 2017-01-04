@@ -31,7 +31,8 @@
     beginning_hour/0,
     beginning_day/1,
     beginning_day/0,
-    %beginning_week/2, %% needs to be /2 because we also need to define what day is considered "beginning of week", since some calendars do sunday and some do monday. We'll hold off on implementation here
+    beginning_week/1,
+    beginning_week/2,
     beginning_month/1,
     beginning_month/0,
     beginning_year/1,
@@ -395,6 +396,23 @@ beginning_year(Date) ->
     {{Y,_,_},{_,_,_}} = to_date(Date),
     {{Y,1,1},{0,0,0}}.
 
+%% 1 = Monday, 7 = Sunday
+beginning_week(Date) ->
+    beginning_week(1, Date).
+
+beginning_week(BeginningDayOfWeek, Date0) ->
+    {DateOnly, _} = Date = to_date(Date0),
+    CurDOW = calendar:day_of_the_week(DateOnly),
+    if
+        CurDOW==BeginningDayOfWeek ->
+            {DateOnly, {0,0,0}};
+        CurDOW > BeginningDayOfWeek->
+            Diff = CurDOW - BeginningDayOfWeek,
+            beginning_day(add_days(-Diff, Date));
+        CurDOW < BeginningDayOfWeek ->
+            Diff = 7 - (BeginningDayOfWeek - CurDOW),
+            beginning_day(add_days(-Diff, Date))
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%% End of Period (day/hour, etc)  %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1241,7 +1259,12 @@ arith_tests(_) ->
         ?_assertEqual({{2016,2,29},{0,0,0}}, to_date(add_months(-1, {{2016,3,31},{0,0,0}}))),
         ?_assertEqual({{2017,2,28},{0,0,0}}, to_date(add_years(1, {{2016,2,29},{0,0,0}}))),
         ?_assertEqual({{2015,3,1},{0,0,0}}, to_date(add_days(1, {{2015,2,28},{0,0,0}}))),
-        ?_assertEqual({{2015,3,3},{0,0,0}}, to_date(add_days(3, {{2015,2,28},{0,0,0}})))
+        ?_assertEqual({{2015,3,3},{0,0,0}}, to_date(add_days(3, {{2015,2,28},{0,0,0}}))),
+        ?_assertEqual({{2017,1,2},{0,0,0}}, beginning_week({{2017,1,2},{0,0,0}})),
+        ?_assertEqual({{2017,1,2},{0,0,0}}, beginning_week({{2017,1,3},{0,0,0}})),
+        ?_assertEqual({{2017,1,3},{0,0,0}}, beginning_week(2, {{2017,1,4},{0,0,0}})),
+        ?_assertEqual({{2016,12,29},{0,0,0}}, beginning_week(4, {{2017,1,4},{0,0,0}})),
+        ?_assertEqual({{2016,12,31},{0,0,0}}, beginning_week(6, {{2017,1,6},{0,0,0}}))
     ]}.
 
         
