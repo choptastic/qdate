@@ -1264,7 +1264,9 @@ arith_tests(_) ->
         ?_assertEqual({{2017,1,2},{0,0,0}}, beginning_week({{2017,1,3},{0,0,0}})),
         ?_assertEqual({{2017,1,3},{0,0,0}}, beginning_week(2, {{2017,1,4},{0,0,0}})),
         ?_assertEqual({{2016,12,29},{0,0,0}}, beginning_week(4, {{2017,1,4},{0,0,0}})),
-        ?_assertEqual({{2016,12,31},{0,0,0}}, beginning_week(6, {{2017,1,6},{0,0,0}}))
+        ?_assertEqual({{2016,12,31},{0,0,0}}, beginning_week(6, {{2017,1,6},{0,0,0}})),
+        ?_assertEqual({{2017,1,1},{0,0,0}}, beginning_week(7, {{2017,1,6},{0,0,0}}))
+
     ]}.
 
         
