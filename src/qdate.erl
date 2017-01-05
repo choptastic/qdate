@@ -31,6 +31,7 @@
     beginning_hour/0,
     beginning_day/1,
     beginning_day/0,
+    beginning_week/0,
     beginning_week/1,
     beginning_week/2,
     beginning_month/1,
@@ -46,6 +47,9 @@
      end_hour/0,
      end_day/1,
      end_day/0,
+     end_week/0,
+     end_week/1,
+     end_week/2,
      end_month/1,
      end_month/0,
      end_year/1,
@@ -396,6 +400,9 @@ beginning_year(Date) ->
     {{Y,_,_},{_,_,_}} = to_date(Date),
     {{Y,1,1},{0,0,0}}.
 
+beginning_week() ->
+    beginning_week({date(), time()}).
+
 %% 1 = Monday, 7 = Sunday
 beginning_week(Date) ->
     beginning_week(1, Date).
@@ -457,6 +464,16 @@ end_year(Date) ->
     {{Y,_,_},_} = to_date(Date),
     {{Y,12,31},{23,59,59}}.
 
+end_week() ->
+    end_week({date(), time()}).
+
+end_week(Date) ->
+    end_week(1, Date).
+
+end_week(BeginningDayOfWeek, Date) ->
+    Beginning = beginning_week(BeginningDayOfWeek, Date),
+    PlusWeek = add_weeks(1, Beginning),
+    add_seconds(-1, PlusWeek).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Comparisons     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

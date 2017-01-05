@@ -692,10 +692,9 @@ ok
 %% that timezone to our intended timezone.
 ```
 
-## Date Truncation (Beginning of X)
+## Beginning or Ending of time periods (hours, days, years, weeks, etc)
 
-Sometimes you need to truncate a time (say, the beginning of the current
-month).
+qdate can determine beginnings and endings of time periods, like "beginning of the month"
 
 This is abstracted to `beginning_X` functions, which return a date/time format
 with the dates and times truncated to the specified level.
@@ -710,11 +709,12 @@ There are also 0-arity versions of the above, in which `Date` is assumed to be
 "right now". For example, calling `qdate:beginning_month()` would return
 midnight on the first day of the current month.
 
-### Beginning of Week
+#### Beginning of Week
 
 qdate can also do a special "beginning" case, particularly the "beginning of
-the week" calculation.  This has two forms, specifically:
-
+the week" calculation.  This has three forms, specifically:
+  
+   + `beginning_week()` - Returns first day of the current week.
    + `beginning_week(Date)` - Assumes the beginning of the week is Monday
      (chosen because Erlang's calendar:day_of_the_week uses 1=Monday and
      7=Sunday).
@@ -724,6 +724,15 @@ the week" calculation.  This has two forms, specifically:
 
 These all return 12am on the day that is the first day of the week of the
 provided date.
+
+### End of time period
+
+There are also the related `end_X` functions available, using the same
+conventions, except return the last second of that time period.
+
+So `end_month("2016-01-05")` will return the unix timestamp representing
+"2016-01-31 11:59:59pm"
+
 
 ## Date Arithmetic
 
