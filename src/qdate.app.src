@@ -11,7 +11,7 @@
                  ]},
   {modules, [qdate, qdate_srv]},
   {env, []},
-  {contributors, ["Jesse Gumm"]},
+  {maintainers, ["Jesse Gumm"]},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/choptastic/qdate"}]}
  ]}.
