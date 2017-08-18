@@ -214,7 +214,10 @@ to_string_worker([$T | RestFormat], ToTZ, Disamb, Date) ->
     ShortName = tz_name(Date, Disamb, ToTZ),
     ShortName ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([$Z | RestFormat], ToTZ, Disamb, Date) ->
-    {Sign, Hours, Mins} = get_timezone_shift(ToTZ, Disamb, Date),
+    {Sign, Hours, Mins} = case get_timezone_shift(ToTZ, Disamb, Date) of
+                            0 -> {'+', 0, 0};
+                            Value -> Value
+                          end,
     Seconds = (Hours * 3600) + (Mins * 60),
     atom_to_list(Sign)  ++ integer_to_list(Seconds) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([$r | RestFormat], ToTZ, Disamb, Date) ->
