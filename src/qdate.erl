@@ -692,6 +692,9 @@ fix_maybe_improper_date({Date0, Time}) ->
     Date = fmid(Date0),
     {Date, Time}.
 
+fix_year_month({Y, M}) when M > 12, M rem 12==0 ->
+    YearsOver = (M div 12) - 1,
+    {Y + YearsOver, 12};
 fix_year_month({Y, M}) when M > 12 ->
     YearsOver = M div 12,
     {Y + YearsOver, M-(YearsOver*12)};
@@ -1275,6 +1278,7 @@ arith_tests(_) ->
         ?_assertEqual({{2015,2,28},{0,0,0}}, to_date(add_months(2, {{2014,12,31},{0,0,0}}))),
         ?_assertEqual({{2016,2,28},{0,0,0}}, to_date(add_years(1, {{2015,2,28},{0,0,0}}))),
         ?_assertEqual({{2014,2,28},{0,0,0}}, to_date(add_months(-24, {{2016,2,29},{0,0,0}}))),
+        ?_assertEqual({{2018,12,15},{0,0,0}}, to_date(add_months(24, {{2016,12,15},{0,0,0}}))),
         ?_assertEqual({{2012,2,29},{0,0,0}}, to_date(add_months(-48, {{2016,2,29},{0,0,0}}))),
         ?_assertEqual({{2016,2,29},{0,0,0}}, to_date(add_months(-1, {{2016,3,31},{0,0,0}}))),
         ?_assertEqual({{2017,2,28},{0,0,0}}, to_date(add_years(1, {{2016,2,29},{0,0,0}}))),
