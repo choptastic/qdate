@@ -131,6 +131,8 @@
     parse/1
 ]).
 
+-compile({no_auto_import,[floor/1]}).
+
 %% This the value in gregorian seconds for jan 1st 1970, 12am
 %% It's used to convert to and from unixtime, since unixtime starts
 %% 1970-01-01 12:00am
@@ -1073,7 +1075,7 @@ deregister_format(Key) ->
 
 
 unixtime_to_now(T) when is_integer(T) ->
-    MegaSec = erlang:floor(T/1000000),
+    MegaSec = floor(T/1000000),
     Secs = T - MegaSec*1000000,
     {MegaSec,Secs,0}.
 
@@ -1316,7 +1318,7 @@ compressed_parser(_) ->
 
 microsoft_parser(FloatDate) when is_float(FloatDate) ->
     try
-        DaysSince1900 = erlang:floor(FloatDate),
+        DaysSince1900 = floor(FloatDate),
         Days0to1900 = calendar:date_to_gregorian_days(1900,1,1),
         GregorianDays = Days0to1900 + DaysSince1900,
         Date = calendar:gregorian_days_to_date(GregorianDays),
@@ -1330,6 +1332,14 @@ microsoft_parser(_) ->
     undefined.
 
 
+floor(N) when N >= 0 ->
+  trunc(N);
+floor(N) when N < 0 ->
+  Int = trunc(N),
+  if
+    Int==N -> Int;
+    true -> Int-1
+  end.
 
 stop_test(_) ->
     ok.
