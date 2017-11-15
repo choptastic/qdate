@@ -1073,7 +1073,7 @@ deregister_format(Key) ->
 
 
 unixtime_to_now(T) when is_integer(T) ->
-    MegaSec = floor(T/1000000),
+    MegaSec = erlang:floor(T/1000000),
     Secs = T - MegaSec*1000000,
     {MegaSec,Secs,0}.
 
@@ -1316,7 +1316,7 @@ compressed_parser(_) ->
 
 microsoft_parser(FloatDate) when is_float(FloatDate) ->
     try
-        DaysSince1900 = floor(FloatDate),
+        DaysSince1900 = erlang:floor(FloatDate),
         Days0to1900 = calendar:date_to_gregorian_days(1900,1,1),
         GregorianDays = Days0to1900 + DaysSince1900,
         Date = calendar:gregorian_days_to_date(GregorianDays),
