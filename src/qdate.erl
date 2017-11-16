@@ -132,7 +132,7 @@
 ]).
 
 %% This the value in gregorian seconds for jan 1st 1970, 12am
-%% It's used to convert to and from unixtime, since unixtime starts 
+%% It's used to convert to and from unixtime, since unixtime starts
 %% 1970-01-01 12:00am
 -define(UNIXTIME_BASE,62167219200).
 
@@ -187,8 +187,8 @@ to_string(Format, ToTZ, Disambiguate, Date) when is_list(Format) ->
                     to_string_worker(Format, ActualToTZ, Disambiguate, ActualDate)
             end
     end.
-            
-        
+
+
 
 to_string_worker([], _, _, _) ->
     "";
@@ -214,7 +214,10 @@ to_string_worker([$T | RestFormat], ToTZ, Disamb, Date) ->
     ShortName = tz_name(Date, Disamb, ToTZ),
     ShortName ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([$Z | RestFormat], ToTZ, Disamb, Date) ->
-    {Sign, Hours, Mins} = get_timezone_shift(ToTZ, Disamb, Date),
+    {Sign, Hours, Mins} = case get_timezone_shift(ToTZ, Disamb, Date) of
+                            0 -> {'+', 0, 0};
+                            Value -> Value
+                          end,
     Seconds = (Hours * 3600) + (Mins * 60),
     atom_to_list(Sign)  ++ integer_to_list(Seconds) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([$r | RestFormat], ToTZ, Disamb, Date) ->
@@ -223,9 +226,9 @@ to_string_worker([$r | RestFormat], ToTZ, Disamb, Date) ->
 to_string_worker([$c | RestFormat], ToTZ, Disamb, Date) ->
     Format1 = "Y-m-d",
     Format2 = "H:i:sP",
-    to_string_worker(Format1, ToTZ, Disamb, Date) 
-            ++ "T" 
-            ++ to_string_worker(Format2, ToTZ, Disamb, Date) 
+    to_string_worker(Format1, ToTZ, Disamb, Date)
+            ++ "T"
+            ++ to_string_worker(Format2, ToTZ, Disamb, Date)
             ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([H | RestFormat], ToTZ, Disamb, Date) ->
     ec_date:format([H], Date) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date).
@@ -234,14 +237,17 @@ tz_name(Date, Disambiguate, ToTZ) ->
     case localtime:tz_name(Date, ToTZ) of
         {ShortName, _} when is_list(ShortName) ->
             ShortName;
-        {{ShortStandard,_},{ShortDST,_}} -> 
+        {{ShortStandard,_},{ShortDST,_}} ->
             case Disambiguate of
                 prefer_standard -> ShortStandard;
                 prefer_daylight -> ShortDST;
                 both            -> {ambiguous, ShortStandard, ShortDST}
             end
     end.
-        
+
+format_shift(0, Seperator) ->
+  format_shift({'+', 0, 0}, Seperator);
+
 format_shift({Sign,Hours,Mins},Separator) ->
     SignStr = atom_to_list(Sign),
     MinStr = leading_zero(Mins),
@@ -353,7 +359,7 @@ to_now(_, Now = {_,_,_}) ->
 to_now(Disamb, ToParse) ->
     case to_unixtime(Disamb, ToParse) of
         {ambiguous, Standard, Daylight} ->
-            {ambiguous, 
+            {ambiguous,
                 unixtime_to_now(Standard),
                 unixtime_to_now(Daylight)};
         Unixtime ->
@@ -553,7 +559,7 @@ strip_sort_normalization(List) ->
 
 make_sort_fun(Op, NonDateOpt) ->
     DateComp = sort_op_comp_fun(Op),
-    
+
     fun({{non_date, A}, _}, {{non_date, B},_}) ->
             DateComp(A,B);
        ({{non_date, _}, _}, _) when NonDateOpt == front ->
@@ -567,7 +573,7 @@ make_sort_fun(Op, NonDateOpt) ->
        (A, B) ->
             DateComp(A, B)
     end.
-   
+
 sort_op_comp_fun(Op) ->
     fun(A, B) ->
         case Op of
@@ -608,7 +614,7 @@ add_hours(Hours) ->
 
 add_days(Days, Date0) ->
     {{Y,M,D},Time} = to_date(Date0),
-    to_unixtime(fix_maybe_improper_date({{Y, M, D+Days}, Time})). 
+    to_unixtime(fix_maybe_improper_date({{Y, M, D+Days}, Time})).
 
 add_days(Days) ->
     add_days(Days, os:timestamp()).
@@ -633,7 +639,7 @@ add_years(Years, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
     TargetYear = Y+Years,
     NewD = case M of
-        2 -> 
+        2 ->
             DaysInMonth = calendar:last_day_of_the_month(TargetYear, M),
             lists:min([DaysInMonth, D]);
         _ ->
@@ -703,7 +709,7 @@ fix_year_month({Y, M}) when M < 1 ->
     {Y - YearsUnder, M+(YearsUnder*12)};
 fix_year_month({Y, M}) ->
     {Y, M}.
-    
+
 
 fmid({Y, M, D}) when M > 12;
                      M < 1 ->
@@ -711,7 +717,7 @@ fmid({Y, M, D}) when M > 12;
     fmid({NewY, NewM, D});
 
 fmid({Y, M, D}) when (D > 30 andalso (
-                        M=:=4 orelse 
+                        M=:=4 orelse
                         M=:=6 orelse
                         M=:=9 orelse
                         M=:=11)) ->
@@ -882,7 +888,7 @@ extract_timezone(Unixtime) when is_integer(Unixtime) ->
     {Unixtime, "GMT"};
 extract_timezone(DateString) when is_list(DateString) ->
     case extract_gmt_relative_timezone(DateString) of
-        undefined -> 
+        undefined ->
             AllTimezones = localtime:list_timezones(),
             RevDate = lists:reverse(DateString),
             extract_timezone_helper(RevDate, AllTimezones);
@@ -897,7 +903,7 @@ extract_timezone(Now={_,_,_}) ->
     {Now, "GMT"};
 extract_timezone({MiscDate,TZ}) ->
     {MiscDate,TZ}.
-    
+
 extract_gmt_relative_timezone(DateString) ->
     RE = "^(.*?)(?:GMT|UTC)?([+-])(\\d{1,2}):?(\\d{2})?$",
     case re:run(DateString,RE,[{capture,all_but_first,list},caseless]) of
@@ -929,17 +935,17 @@ extract_timezone_helper(RevDate, [_TZ | TZs]) ->
     extract_timezone_helper(RevDate, TZs).
 
 
-%% This is the timezone only if the qdate application variable 
+%% This is the timezone only if the qdate application variable
 %% "default_timezone" isn't set or is set to undefined.
 %% It's recommended that your app sets the var in a config, or at least using
 %%
 %%      application:set_env(qdate, default_timezone, "GMT").
 %%
 default_timezone() ->
-    case application:get_env(qdate, default_timezone) of 
+    case application:get_env(qdate, default_timezone) of
         undefined -> "GMT";
         {ok, {Mod, Fun}} -> Mod:Fun();
-        {ok, TZ} -> TZ 
+        {ok, TZ} -> TZ
     end.
 
 determine_timezone() ->
@@ -955,7 +961,7 @@ date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) when is_integer(FromTZ) ->
     NewDate = localtime:adjust_datetime(Date, FromTZ),
     date_tz_to_tz(NewDate, Disambiguate, "GMT", ToTZ);
 date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) ->
-    ActualToTZ = ensure_timezone(ToTZ), 
+    ActualToTZ = ensure_timezone(ToTZ),
     case Disambiguate of
         prefer_standard ->
             localtime:local_to_local(Date, FromTZ, ActualToTZ);
@@ -971,9 +977,9 @@ date_tz_to_tz_both(Date, FromTZ, ToTZ) ->
     if
         Standard=:=Daylight ->
             Standard;
-        ?else -> 
+        ?else ->
             {ambiguous, Standard, Daylight}
-    end.           
+    end.
 
 set_timezone(TZ) when is_binary(TZ) ->
     set_timezone(binary_to_list(TZ));
@@ -1033,7 +1039,7 @@ deregister_parsers() ->
 try_registered_parsers(RawDate) ->
     Parsers = qdate_srv:get_parsers(),
     try_parsers(RawDate,Parsers).
-    
+
 try_parsers(_RawDate,[]) ->
     undefined;
 try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
@@ -1049,7 +1055,7 @@ try_parsers(RawDate,[{ParserKey,Parser}|Parsers]) ->
         Other ->
             throw({invalid_parser_return_value,[{parser_key,ParserKey},{return,Other}]})
     catch
-        Error:Reason -> 
+        Error:Reason ->
             Stacktrace = erlang:get_stacktrace(),
             throw({error_in_parser,[{error,{Error,Reason}},{parser_key,ParserKey}, {stacktrace, Stacktrace}]})
     end.
@@ -1070,22 +1076,13 @@ deregister_format(Key) ->
 
 
 unixtime_to_now(T) when is_integer(T) ->
-    MegaSec = floor(T/1000000),
+    MegaSec = my_floor(T/1000000),
     Secs = T - MegaSec*1000000,
     {MegaSec,Secs,0}.
 
 unixtime_to_date(T) ->
     Now = unixtime_to_now(T),
     calendar:now_to_datetime(Now).
-
-floor(N) when N >= 0 ->
-    trunc(N);
-floor(N) when N < 0 ->
-    Int = trunc(N),
-    if
-        Int==N -> Int;
-        true -> Int-1
-    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  TESTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1263,7 +1260,7 @@ parser_format_test(_) ->
         ?_assertEqual("2/8/2008 12:00am",to_string(longdate,"2008-02-08 12:00am")),
         ?_assertEqual("2/8/2008 12:00am",to_string(longdate,"20080208"))
     ]}.
-    
+
 arith_tests(_) ->
     {inorder,[
         ?_assertEqual({{2012,2,29},{23,59,59}}, to_date(add_seconds(-1, {{2012,3,1},{0,0,0}}))),
@@ -1293,7 +1290,7 @@ arith_tests(_) ->
 
     ]}.
 
-        
+
 start_test() ->
     application:start(qdate),
     set_timezone(?SELF_TZ),
@@ -1308,7 +1305,7 @@ start_test() ->
 compressed_parser(List) when length(List)==8 ->
     try re:run(List,"^(\\d{4})(\\d{2})(\\d{2})$",[{capture,all_but_first,list}]) of
         nomatch -> undefined;
-        {match, [Y,M,D]} -> 
+        {match, [Y,M,D]} ->
             Date = {list_to_integer(Y),list_to_integer(M),list_to_integer(D)},
             case calendar:valid_date(Date) of
                 true ->
@@ -1318,12 +1315,12 @@ compressed_parser(List) when length(List)==8 ->
     catch
         _:_ -> undefined
     end;
-compressed_parser(_) -> 
+compressed_parser(_) ->
     undefined.
 
 microsoft_parser(FloatDate) when is_float(FloatDate) ->
     try
-        DaysSince1900 = floor(FloatDate),
+        DaysSince1900 = my_floor(FloatDate),
         Days0to1900 = calendar:date_to_gregorian_days(1900,1,1),
         GregorianDays = Days0to1900 + DaysSince1900,
         Date = calendar:gregorian_days_to_date(GregorianDays),
@@ -1336,7 +1333,15 @@ microsoft_parser(FloatDate) when is_float(FloatDate) ->
 microsoft_parser(_) ->
     undefined.
 
-    
+
+my_floor(N) when N >= 0 ->
+  trunc(N);
+my_floor(N) when N < 0 ->
+  Int = trunc(N),
+  if
+    Int==N -> Int;
+    true -> Int-1
+  end.
 
 stop_test(_) ->
     ok.
