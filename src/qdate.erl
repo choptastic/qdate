@@ -131,10 +131,6 @@
     parse/1
 ]).
 
--export([
-    fix_year_month/1
-]).
-
 %% This the value in gregorian seconds for jan 1st 1970, 12am
 %% It's used to convert to and from unixtime, since unixtime starts 
 %% 1970-01-01 12:00am
