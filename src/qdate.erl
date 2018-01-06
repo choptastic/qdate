@@ -621,7 +621,6 @@ add_weeks(Weeks) ->
 
 add_months(Months, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
-    io:format("~p,~p~n",[Y, M+Months]),
     {TargetYear, TargetMonth} = fix_year_month({Y,M+Months}),
     DaysInMonth = calendar:last_day_of_the_month(TargetYear, TargetMonth),
     NewD = lists:min([DaysInMonth, D]),
