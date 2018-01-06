@@ -131,6 +131,10 @@
     parse/1
 ]).
 
+-export([
+    fix_year_month/1
+]).
+
 %% This the value in gregorian seconds for jan 1st 1970, 12am
 %% It's used to convert to and from unixtime, since unixtime starts 
 %% 1970-01-01 12:00am
@@ -621,6 +625,7 @@ add_weeks(Weeks) ->
 
 add_months(Months, Date) ->
     {{Y,M,D}, Time} = to_date(Date),
+    io:format("~p,~p~n",[Y, M+Months]),
     {TargetYear, TargetMonth} = fix_year_month({Y,M+Months}),
     DaysInMonth = calendar:last_day_of_the_month(TargetYear, TargetMonth),
     NewD = lists:min([DaysInMonth, D]),
@@ -692,15 +697,22 @@ fix_maybe_improper_date({Date0, Time}) ->
     Date = fmid(Date0),
     {Date, Time}.
 
-fix_year_month({Y, M}) when M > 12, M rem 12==0 ->
-    YearsOver = (M div 12) - 1,
-    {Y + YearsOver, 12};
+
+%% Originally, this function didn't recurse.  Here's the story.  Some numbers,
+%% like M = 12 (December) or M = -11 (January) would trigger an overflow or
+%% underflow, resulting in fix_year_month returning something nonsensical like
+%% {2018, 13}.  I added some extra clauses to special treat those "overflow but
+%% shouldn't" situations, but realized it was just cleaner to recurse, calling
+%% fix_year_month on the calculated result, knowing that the numbers will
+%% normalize on their own. So for all the clauses of fix_year_month, we recurse
+%% as a sanity check, eventually only returning the result of the "Everything
+%% Looks good" clause at the bottom.
 fix_year_month({Y, M}) when M > 12 ->
     YearsOver = M div 12,
-    {Y + YearsOver, M-(YearsOver*12)};
+    fix_year_month({Y + YearsOver, M-(YearsOver*12)});
 fix_year_month({Y, M}) when M < 1 ->
     YearsUnder = (abs(M-1) div 12) + 1,
-    {Y - YearsUnder, M+(YearsUnder*12)};
+    fix_year_month({Y - YearsUnder, M+(YearsUnder*12)});
 fix_year_month({Y, M}) ->
     {Y, M}.
     
@@ -1277,6 +1289,24 @@ arith_tests(_) ->
         ?_assertEqual({{2015,1,31},{23,59,59}}, to_date(add_months(1, {{2014,12,31},{23,59,59}}))),
         ?_assertEqual({{2015,2,28},{0,0,0}}, to_date(add_months(2, {{2014,12,31},{0,0,0}}))),
         ?_assertEqual({{2016,2,28},{0,0,0}}, to_date(add_years(1, {{2015,2,28},{0,0,0}}))),
+
+        ?_assertEqual({{2017,2,1},{0,0,0}}, to_date(add_months(-11, {{2018,1,1},{0,0,0}}))),
+        ?_assertEqual({{2017,1,1},{0,0,0}}, to_date(add_months(-12, {{2018,1,1},{0,0,0}}))),
+        ?_assertEqual({{2016,12,1},{0,0,0}}, to_date(add_months(-13, {{2018,1,1},{0,0,0}}))),
+
+        ?_assertEqual({{2018,12,1},{0,0,0}}, to_date(add_months(11, {{2018,1,1},{0,0,0}}))),
+        ?_assertEqual({{2019,1,1},{0,0,0}}, to_date(add_months(12, {{2018,1,1},{0,0,0}}))),
+        ?_assertEqual({{2019,2,1},{0,0,0}}, to_date(add_months(13, {{2018,1,1},{0,0,0}}))),
+
+        ?_assertEqual({{2018,1,1},{0,0,0}}, to_date(add_months(-11, {{2018,12,1},{0,0,0}}))),
+        ?_assertEqual({{2017,12,1},{0,0,0}}, to_date(add_months(-12, {{2018,12,1},{0,0,0}}))),
+        ?_assertEqual({{2017,11,1},{0,0,0}}, to_date(add_months(-13, {{2018,12,1},{0,0,0}}))),
+
+        ?_assertEqual({{2019,11,1},{0,0,0}}, to_date(add_months(11, {{2018,12,1},{0,0,0}}))),
+        ?_assertEqual({{2019,12,1},{0,0,0}}, to_date(add_months(12, {{2018,12,1},{0,0,0}}))),
+        ?_assertEqual({{2020,1,1},{0,0,0}}, to_date(add_months(13, {{2018,12,1},{0,0,0}}))),
+
+
         ?_assertEqual({{2014,2,28},{0,0,0}}, to_date(add_months(-24, {{2016,2,29},{0,0,0}}))),
         ?_assertEqual({{2018,12,15},{0,0,0}}, to_date(add_months(24, {{2016,12,15},{0,0,0}}))),
         ?_assertEqual({{2012,2,29},{0,0,0}}, to_date(add_months(-48, {{2016,2,29},{0,0,0}}))),
