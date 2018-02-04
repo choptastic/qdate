@@ -407,6 +407,9 @@ beginning_week() ->
 beginning_week(Date) ->
     beginning_week(1, Date).
 
+beginning_week(BeginningDayOfWeek, Date) when is_atom(BeginningDayOfWeek) ->
+    DOW = weekday_map(BeginningDayOfWeek),
+    beginning_week(DOW, Date);
 beginning_week(BeginningDayOfWeek, Date0) when
         BeginningDayOfWeek >= 1,
         BeginningDayOfWeek =< 7,
@@ -423,6 +426,22 @@ beginning_week(BeginningDayOfWeek, Date0) when
             Diff = 7 - (BeginningDayOfWeek - CurDOW),
             beginning_day(add_days(-Diff, Date))
     end.
+
+weekday_map(mon) -> 1;
+weekday_map(tue) -> 2;
+weekday_map(wed) -> 3;
+weekday_map(thu) -> 4;
+weekday_map(fri) -> 5;
+weekday_map(sat) -> 6;
+weekday_map(sun) -> 7;
+
+weekday_map(monday) -> 1;
+weekday_map(tuesday) -> 2;
+weekday_map(wednesday) -> 3;
+weekday_map(thursday) -> 4;
+weekday_map(friday) -> 5;
+weekday_map(saturday) -> 6;
+weekday_map(sunday) -> 7.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%% End of Period (day/hour, etc)  %%%%%%%%%%%%%%%%%%%%%%%%%%

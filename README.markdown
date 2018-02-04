@@ -719,11 +719,22 @@ the week" calculation.  This has three forms, specifically:
      (chosen because Erlang's calendar:day_of_the_week uses 1=Monday and
      7=Sunday).
    + `beginning_week(DayOfWeek, Date)` - Calculates the beginning of the week
-     based on the provided `DayOfWeek`. Valid values for DayOfWeek are 1-7,
-     where 1=Monday, and 7=Sunday.
+     based on the provided `DayOfWeek`. Valid values for DayOfWeek are the
+     integers 1-7 or the atom verions of the days of the week. Specifically:
+	 
+     * Monday: `1 | monday | mon`
+     * Tuesday: `2 | tuesday | tue`
+     * Wednesday: `3 | wednesday | wed`
+     * Thursday: `4 | thursday | thu`
+     * Friday: `5 | friday | fri`
+     * Saturday: `6 | saturday | sat`
+     * Sunday: `7 | sunday | sun`
 
 These all return 12am on the day that is the first day of the week of the
 provided date.
+
+(My apologies to non-English speakers. I'm a lazy American who only speaks
+English, hence the Anglocentric day names).
 
 ### End of time period
 
