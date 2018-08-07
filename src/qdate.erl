@@ -900,6 +900,7 @@ get_timezone_shift(TZ, Disambiguate, Date) ->
         {error,T} -> {error,T};
         {Sh, _} when Disambiguate==prefer_standard -> Sh;
         {_, Sh} when Disambiguate==prefer_daylight -> Sh;
+        0 -> {'+', 0, 0};
         Sh -> Sh
     end.
 
