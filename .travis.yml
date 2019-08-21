@@ -5,10 +5,4 @@ otp_release:
   - 21.2
   - 21.0
   - 20.0
-	#  - 19.0
-	#  - 18.0
-	#  - 17.4
-	#  - 17.0
-	#  - R16B
-	#  - R15B03
 before_script: "sudo apt-get --yes --force-yes install libpam-runtime python-software-properties software-properties-common"
