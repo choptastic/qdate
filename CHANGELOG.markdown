@@ -14,6 +14,8 @@
 * Fix: Ensure `get_timezone()` returns the default timezone (from config) if it
   hasn't been set by `get_timezone()`
 * Fix UTC/GMT bug (@loudferret)
+* Fix Erlang 21 Stacktrace changes (@tnt-dev)
+* Set a better rebar2 version of erlware commons (@tnt-dev)
 
 ## 0.4.2
 
