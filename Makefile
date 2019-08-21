@@ -1,4 +1,11 @@
+REBAR_PATH = $(shell which rebar3)
+
+ifeq ($(REBAR_PATH),)
 REBAR = $(shell pwd)/rebar3
+else
+REBAR = rebar3
+endif
+
 
 all: compile
 
