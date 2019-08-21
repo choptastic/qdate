@@ -13,7 +13,7 @@
 * Add an optional "relative date/time parser".
 * Fix: Ensure `get_timezone()` returns the default timezone (from config) if it
   hasn't been set by `get_timezone()`
-* Remove R14 from travis testing.
+* Fix UTC/GMT bug (@loudferret)
 
 ## 0.4.2
 
