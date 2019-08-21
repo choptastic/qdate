@@ -1,5 +1,5 @@
 % vim: ts=4 sw=4 et
-% Copyright (c) 2013-2016 Jesse Gumm
+% Copyright (c) 2013-2019 Jesse Gumm
 % See LICENSE for licensing information.
 %
 -module(qdate).

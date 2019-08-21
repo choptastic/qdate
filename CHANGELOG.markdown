@@ -1,4 +1,4 @@
-## 0.5.0 (in development)
+## 0.5.0
 
 * Add `range_X` functions for getting a list of dates/times within a range
   (such as `range_day/3` to get a range of days between a start and end date.
