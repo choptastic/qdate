@@ -69,8 +69,9 @@ T, Z, r, and c), `qdate` will handle them for us.
   + `to_unixtime(Date)` - converts any date/time format to a unixtime integer
 
 A **ToTimezone** value of the atom `auto` will automatically determine the
-timezone. For example, `to_date(Date, auto)` is exactly the same as
-`to_date(Date)`
+timezone. For example, `to_date(auto, Date)` is exactly the same as
+`to_date(Date)`. The atom `retain` will retain the original timezone as
+determined from the input date.
 
 **A Note About Argument Order**: In all cases, `ToTimezone` is optional and if
 omitted, will be determined as described below in "Understanding Timezone
