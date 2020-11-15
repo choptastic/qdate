@@ -1,7 +1,6 @@
 language: erlang
 script: "make test"
 otp_release:
-  - 23.1
   - 23.0
   - 22.3
   - 21.3
