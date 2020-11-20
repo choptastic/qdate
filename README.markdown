@@ -845,6 +845,16 @@ with qdate:
 
 Also note that the range functions are *inclusive*.
 
+
+## Age Comparison
+
+There are two main comparisons right now, age in years, and age in days.
+
+  + `age(Date)` - Number of years since `Date`
+  + `age(FromDate, ToDate)` - Number of years between `FromDate` to `ToDate`
+  + `age_days(Date)` - Number of full days since `Date` (for example from `2pm` yesterday to `1:59pm` today is still 0.
+  + `age_days(FromDate, ToDate)` - Number of full days between `FromDate` and `ToDate`.
+
 ## Configuration Sample
 
 There is a sample configuration file can be found in the root of the qdate
@@ -879,7 +889,6 @@ See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGEL
 + Add `-spec` and `-type` info for dialyzer
 + Research the viability of [ezic](https://github.com/drfloob/ezic) for a
   timezone backend replacement for `erlang_localtime`.
-+ Add age calculation stuff: `age_years(Date)`, `age_minutes(Date)`, etc.
 
 ## Conclusion
 

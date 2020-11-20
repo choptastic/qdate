@@ -102,6 +102,13 @@
 ]).
 
 -export([
+    age/1,
+    age/2,
+    age_days/1,
+    age_days/2
+]).
+
+-export([
     register_parser/2,
     register_parser/1,
     deregister_parser/1,
@@ -768,6 +775,42 @@ fmid({Y, M, D}) when D < 1 ->
 fmid(Date) ->
     Date.
 
+age(Birth) ->
+    age(Birth, os:timestamp()).
+
+age(Birth, Now) ->
+    %% B=Birth
+    {{BY, BM, BD}, _} = to_date(Birth),
+    %% C=Current
+    {{CY, CM, CD}, _} = to_date(Now),
+    if
+        (CM > BM);
+        (CM == BM andalso CD >= BD)
+            -> CY - BY;
+        true ->
+            (CY - BY) - 1
+    end.
+
+age_days(Birth) ->
+    age_days(Birth, os:timestamp()).
+
+age_days(Birth, Now) ->
+    case {to_date(Birth), to_date(Now)} of
+        {{_SameDay, _}, {_SameDay, _}} ->
+            0;
+        {{BirthDate, BirthTime}, {NowDate, NowTime}} ->
+            BirthDays = calendar:date_to_gregorian_days(BirthDate),
+            NowDays = calendar:date_to_gregorian_days(NowDate),
+            DiffDays = NowDays - BirthDays,
+            if
+                NowTime >= BirthTime ->
+                    DiffDays;
+                true ->
+                    DiffDays-1
+            end
+    end.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%      Ranges        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1340,7 +1383,22 @@ arith_tests(_) ->
         ?_assertEqual({{2017,1,3},{0,0,0}}, beginning_week(2, {{2017,1,4},{0,0,0}})),
         ?_assertEqual({{2016,12,29},{0,0,0}}, beginning_week(4, {{2017,1,4},{0,0,0}})),
         ?_assertEqual({{2016,12,31},{0,0,0}}, beginning_week(6, {{2017,1,6},{0,0,0}})),
-        ?_assertEqual({{2017,1,1},{0,0,0}}, beginning_week(7, {{2017,1,6},{0,0,0}}))
+        ?_assertEqual({{2017,1,1},{0,0,0}}, beginning_week(7, {{2017,1,6},{0,0,0}})),
+
+        ?_assertEqual(0, age("1981-01-15", "1981-12-31")),
+        ?_assertEqual(39, age("1981-01-15", "2020-01-15")),
+        ?_assertEqual(39, age("1981-01-15", "2020-01-15 12am")),
+        ?_assertEqual(38, age("1981-01-15", "2020-01-14")),
+        ?_assertEqual(38, age("1981-01-15", "2020-01-14 11:59pm")),
+
+        %% checking pre-unix-epoch
+        ?_assertEqual(100, age("1901-01-01","2001-01-01")),
+        ?_assertEqual(20, age("1900-01-01", "1920-01-01")),
+        
+        ?_assertEqual(0, age_days("2020-11-20 12am","2020-11-20 11:59:59pm")),
+        ?_assertEqual(1, age_days("2020-11-19 11:59:59pm","2020-11-20 11:59:59pm")),
+        ?_assertEqual(7, age_days("2020-11-20","2020-11-27")),
+        ?_assertEqual(7, age_days("2020-11-27","2020-12-04"))
 
     ]}.
 

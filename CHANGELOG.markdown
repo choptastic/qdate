@@ -1,3 +1,7 @@
+## 0.6.0 (in development)
+
+* Add `age` and `age_days` functions
+
 ## 0.5.0
 
 * Add `range_X` functions for getting a list of dates/times within a range
