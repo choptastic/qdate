@@ -1,8 +1,10 @@
 *~
 *.beam
 *.sw?
+*.iml
 deps/
 ebin/
 .eunit/
+.idea/
 _build
 rebar.lock
