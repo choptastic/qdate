@@ -236,7 +236,13 @@ to_string_worker([$r | RestFormat], ToTZ, Disamb, Date) ->
     to_string_worker(NewFormat, ToTZ, Disamb, Date) ++ to_string_worker(RestFormat, ToTZ, Disamb, Date);
 to_string_worker([$c | RestFormat], ToTZ, Disamb, Date) ->
     Format1 = "Y-m-d",
-    Format2 = "H:i:sP",
+    Format2 = case Date of
+                  {_, {_,_,_,_}} ->
+                      %% Have milliseconds
+                      "H:i:s.fP";
+                  _ ->
+                      "H:i:sP"
+              end,
     to_string_worker(Format1, ToTZ, Disamb, Date) 
             ++ "T" 
             ++ to_string_worker(Format2, ToTZ, Disamb, Date) 
@@ -301,9 +307,13 @@ to_date(ToTZ, Disambiguate, RawDate)  ->
         {ParsedDate,ParsedTZ} ->
             {ParsedDate,ParsedTZ}
     end,
+    PreserveMs = preserve_ms(),
     try raw_to_date(RawDate3) of
         D={{_,_,_},{_,_,_}} ->
             date_tz_to_tz(D, Disambiguate, FromTZ, ToTZ);
+        {{Year, Month, Date},{Hour,Minute,Second,Millis}} when PreserveMs ->
+            {ODate, {OHour,OMinute,OSecond}} = date_tz_to_tz({{Year, Month, Date},{Hour,Minute,Second}}, Disambiguate, FromTZ, ToTZ),
+            {ODate, {OHour,OMinute,OSecond, Millis}};
         {{Year, Month, Date},{Hour,Minute,Second,_Millis}} ->
             date_tz_to_tz({{Year, Month, Date},{Hour,Minute,Second}}, Disambiguate, FromTZ, ToTZ)
     catch
@@ -1005,6 +1015,8 @@ extract_timezone_helper(RevDate, [TZ | TZs]) when length(RevDate) >= length(TZ) 
 extract_timezone_helper(RevDate, [_TZ | TZs]) ->
     extract_timezone_helper(RevDate, TZs).
 
+preserve_ms() ->
+    application:get_env(qdate, preserve_ms, false).
 
 %% This is the timezone only if the qdate application variable 
 %% "default_timezone" isn't set or is set to undefined.
@@ -1190,6 +1202,30 @@ tz_test_() ->
                 test_deterministic_parser(SetupData),
                 test_disambiguation(SetupData),
                 arith_tests(SetupData)
+            ]}
+        end
+    }.
+
+tz_preserve_ms_true_test_() ->
+    {
+        setup,
+        fun start_test/0,
+        fun stop_test/1,
+        fun(SetupData) ->
+            {inorder,[
+                preserve_ms_true_tests(SetupData)
+            ]}
+        end
+    }.
+
+tz_preserve_ms_false_test_() ->
+    {
+        setup,
+        fun start_test/0,
+        fun stop_test/1,
+        fun(SetupData) ->
+            {inorder,[
+                preserve_ms_false_tests(SetupData)
             ]}
         end
     }.
@@ -1402,7 +1438,24 @@ arith_tests(_) ->
 
     ]}.
 
-        
+preserve_ms_true_tests(_) ->
+    application:set_env(qdate, preserve_ms, true),
+    {inorder, [
+      ?_assertEqual({{2021,5,8},{23,0,16,472000}}, qdate:to_date(<<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
+      ?_assertEqual(<<"2021-05-08T23:00:16.472000+00:00">>, qdate:to_string(<<"Y-m-d\\TH:i:s.fP">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
+      ?_assertEqual(<<"2021-05-08T23:00:16+00:00">>, qdate:to_string(<<"Y-m-d\\TH:i:sP">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
+      ?_assertEqual(<<"2021-05-08T23:00:16.472000+00:00">>, qdate:to_string(<<"c">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>))
+    ]}.
+
+preserve_ms_false_tests(_) ->
+    application:set_env(qdate, preserve_ms, false),
+    {inorder, [
+        ?_assertEqual({{2021,5,8},{23,0,16}}, qdate:to_date(<<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
+        ?_assertEqual(<<"2021-05-08T23:00:16.0+00:00">>, qdate:to_string(<<"Y-m-d\\TH:i:s.fP">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
+        ?_assertEqual(<<"2021-05-08T23:00:16+00:00">>, qdate:to_string(<<"Y-m-d\\TH:i:sP">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
+        ?_assertEqual(<<"2021-05-08T23:00:16+00:00">>, qdate:to_string(<<"c">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>))
+    ]}.
+
 start_test() ->
     application:start(qdate),
     set_timezone(?SELF_TZ),
