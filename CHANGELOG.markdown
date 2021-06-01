@@ -1,6 +1,8 @@
-## 0.6.0 (in development)
+## 0.6.0
 
 * Add `age` and `age_days` functions
+* Add option to preserve millisecond accuracy in date parsing and formatting (@Leonardb)
+
 
 ## 0.5.0
 

@@ -7,4 +7,3 @@ ebin/
 .eunit/
 .idea/
 _build
-rebar.lock

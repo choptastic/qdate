@@ -1,0 +1,14 @@
+{"1.2.0",
+[{<<"cf">>,{pkg,<<"cf">>,<<"0.3.1">>},1},
+ {<<"erlware_commons">>,{pkg,<<"erlware_commons">>,<<"1.5.0">>},0},
+ {<<"qdate_localtime">>,{pkg,<<"qdate_localtime">>,<<"1.1.0">>},0}]}.
+[
+{pkg_hash,[
+ {<<"cf">>, <<"5CB902239476E141EA70A740340233782D363A31EEA8AD37049561542E6CD641">>},
+ {<<"erlware_commons">>, <<"918C56D8FB3BE52AF0DF138ED6E0755E764AD4467CD7D025761F7D0A17D3DEC1">>},
+ {<<"qdate_localtime">>, <<"5F6C3ACF10ECC5A7E2EFA3DCD2C863102B962188DBD9E086EC01D29FE029DA29">>}]},
+{pkg_hash_ext,[
+ {<<"cf">>, <<"315E8D447D3A4B02BCDBFA397AD03BBB988A6E0AA6F44D3ADD0F4E3C3BF97672">>},
+ {<<"erlware_commons">>, <<"3E7C6FB2BA4C29B0DD5DFE9D031B66449E2088ECEC1A81465BD9FDE05ED7D0DB">>},
+ {<<"qdate_localtime">>, <<"91928E066DA6BCC745FF18B7C368347457CAF9250AD00950E9DA18E129D49EC5">>}]}
+].
