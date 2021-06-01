@@ -806,7 +806,7 @@ age_days(Birth) ->
 
 age_days(Birth, Now) ->
     case {to_date(Birth), to_date(Now)} of
-        {{_SameDay, _}, {_SameDay, _}} ->
+        {{SameDay, _}, {SameDay, _}} ->
             0;
         {{BirthDate, BirthTime}, {NowDate, NowTime}} ->
             BirthDays = calendar:date_to_gregorian_days(BirthDate),
