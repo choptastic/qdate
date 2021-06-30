@@ -1,7 +1,7 @@
 {application, qdate,
  [
   {description, "Simple Date and Timezone handling for Erlang"},
-  {vsn, "0.6.0"},
+  {vsn, "0.7.0"},
   {registered, []},
   {applications, [
                   kernel,
@@ -9,9 +9,10 @@
                   erlware_commons,
                   stdlib
                  ]},
-  {modules, [qdate, qdate_srv]},
+  {modules, [qdate, qdate_srv, qdate_sup, qdate_app]},
   {env, []},
   {maintainers, ["Jesse Gumm"]},
   {licenses, ["MIT"]},
+  {mod, {qdate_app, []}},
   {links, [{"Github", "https://github.com/choptastic/qdate"}]}
  ]}.

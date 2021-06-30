@@ -156,7 +156,7 @@
 -define(else, true).
 
 start() ->
-    application:load(qdate).
+    application:ensure_all_started(qdate).
 
 stop() ->
     ok.
@@ -1457,7 +1457,7 @@ preserve_ms_false_tests(_) ->
     ]}.
 
 start_test() ->
-    application:start(qdate),
+    qdate:start(),
     set_timezone(?SELF_TZ),
     set_timezone(?SITE_KEY,?SITE_TZ),
     set_timezone(?USER_KEY,?USER_TZ),

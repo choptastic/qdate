@@ -1,12 +1,9 @@
 % vim: ts=4 sw=4 et
-% Copyright (c) 2013-2015 Jesse Gumm
+% Copyright (c) 2013-2021 Jesse Gumm
 % See LICENSE for licensing information.
-%
-% NOTE: You'll probably notice that this isn't *actually* a server.  It *used*
-% to be a server, but is now instead just where we interact with the qdate
-% application environment.  Anyway, sorry for the confusion.
 
 -module(qdate_srv).
+-behaviour(gen_server).
 
 -export([
     set_timezone/1,
@@ -28,6 +25,19 @@
     get_formats/0
 ]).
 
+
+%% API
+-export([start_link/0]).
+
+%% gen_server callbacks
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
+
+
 %% Simple wrappers for unique keys
 -define(BASETAG, qdate_var).
 -define(KEY(Name), {?BASETAG, Name}).
@@ -38,6 +48,42 @@
 -define(PARSERKEY(Name), {?PARSERTAG, Name}).
 -define(FORMATTAG, qdate_format).
 -define(FORMATKEY(Name), {?FORMATTAG, Name}).
+
+-define(SERVER, ?MODULE).
+-define(TABLE, ?MODULE).
+
+-record(state, {}).
+
+start_link() ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+init([]) ->
+    error_logger:info_msg("Creating qdate ETS Table: ~p",[?TABLE]),
+    ?TABLE = ets:new(?TABLE, [public, {read_concurrency, true}, named_table]),
+    {ok, #state{}}.
+
+handle_call({set, Key, Val}, _From, State) ->
+    ets:insert(?TABLE, {Key, Val}),
+    {reply, ok, State};
+handle_call({unset, Key}, _From, State) ->
+    ets:delete(?TABLE, Key),
+    {reply, ok, State};
+handle_call(_, _From, State) ->
+    {reply, invalid_request, State}.
+
+handle_cast(_Msg, State) ->
+        {noreply, State}.
+
+handle_info(_Info, State) ->
+        {noreply, State}.
+
+terminate(_Reason, _State) ->
+        ok.
+
+code_change(_OldVsn, State, _Extra) ->
+        {ok, State}.
+
+
 
 %% PUBLIC API FUNCTIONS
 
@@ -91,25 +137,22 @@ get_formats() ->
 %% App Vars
 
 set_env(Key, Val) ->
-    application:set_env(qdate, ?KEY(Key), Val).
+    gen_server:call(?SERVER, {set, ?KEY(Key), Val}).
 
 get_env(Key) ->
     get_env(Key, undefined).
 
 get_env(Key, Default) ->
-    %% Soon, this can just be replaced with application:get_env/3
-    %% which was introduced in R16B.
-    case application:get_env(qdate, ?KEY(Key)) of
-        undefined -> Default;
-        {ok, Val} -> Val
+    case ets:lookup(?TABLE, ?KEY(Key)) of
+        [{__Key, Val}] -> Val;
+        [] -> Default
     end.
 
 unset_env(Key) ->
-    application:unset_env(qdate, ?KEY(Key)).
+    gen_server:call(?SERVER, {unset, ?KEY(Key)}).
 
 get_all_env(FilterTag) ->
-    All = application:get_all_env(qdate),
-    %% Maybe this is a little nasty.
+    All = ets:tab2list(?TABLE),
     [{Key, V} || {{?BASETAG, {Tag, Key}}, V} <- All, Tag==FilterTag].
 
 %% ProcDic Vars
@@ -123,3 +166,9 @@ put_pd(Key, Val) ->
 
 unset_pd(Key) ->
     put_pd(Key, undefined).
+
+
+
+
+
+
