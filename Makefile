@@ -9,6 +9,9 @@ endif
 
 all: compile
 
+dialyzer:
+	$(REBAR) dialyzer
+
 compile:
 	$(REBAR) compile
 

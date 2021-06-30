@@ -4,6 +4,8 @@
 %
 -module(qdate).
 
+-compile(export_all).
+
 -export([
     start/0,
     stop/0
@@ -138,6 +140,12 @@
     parse/1
 ]).
 
+-type qdate() :: any().
+-type datetime() :: {{integer(), integer(), integer()}, {integer(), integer(), integer()}} |
+                    {{integer(), integer(), integer()}, {integer(), integer(), integer(), integer()}}.
+-type erlnow() :: {integer(), integer(), integer()}.
+-type binary_or_string() :: binary() | string().
+
 %% erlang:get_stacktrace/0 is deprecated in OTP 21
 -ifndef(OTP_RELEASE).
 -define(WITH_STACKTRACE(T, R, S), T:R -> S = erlang:get_stacktrace(), ).
@@ -155,6 +163,7 @@
 -define(DEFAULT_DISAMBIG, prefer_standard).
 -define(else, true).
 
+
 start() ->
     application:ensure_all_started(qdate).
 
@@ -170,6 +179,7 @@ to_string(Format, Date) ->
 to_string(Format, ToTZ, Date) ->
     to_string(Format, ToTZ, ?DEFAULT_DISAMBIG, Date).
 
+-spec to_string(Format :: any(), ToTZ :: any(), Disambiguate :: atom(), Date :: qdate()) -> binary_or_string() | {ambiguous, binary_or_string() , binary_or_string()}.
 to_string(FormatKey, ToTZ, Disambiguate, Date) when is_atom(FormatKey) orelse is_tuple(FormatKey) ->
     Format = case qdate_srv:get_format(FormatKey) of
         undefined -> throw({undefined_format_key,FormatKey});
@@ -293,6 +303,7 @@ to_date(RawDate) ->
 to_date(ToTZ, RawDate) ->
     to_date(ToTZ, ?DEFAULT_DISAMBIG, RawDate).
 
+-spec to_date(ToTZ :: any(), Disambiguate :: atom(), RawDate :: any()) -> {ambiguous, datetime(), datetime()} | datetime().
 to_date(ToTZ, Disambiguate, RawDate) when is_binary(RawDate) ->
     to_date(ToTZ, Disambiguate, binary_to_list(RawDate));
 to_date(ToTZ, Disambiguate, RawDate) when is_binary(ToTZ) ->
@@ -350,9 +361,9 @@ get_deterministic_datetime() ->
 to_unixtime(Date) ->
     to_unixtime(?DEFAULT_DISAMBIG, Date).
 
+-spec to_unixtime(Disamb :: atom(), qdate()) -> integer() | {ambiguous, integer(), integer()}.
 to_unixtime(_, Unixtime) when is_integer(Unixtime) ->
     Unixtime;
-
 to_unixtime(_, {MegaSecs,Secs,_}) when is_integer(MegaSecs), is_integer(Secs) ->
     MegaSecs*1000000 + Secs;
 to_unixtime(Disamb, ToParse) ->
@@ -372,6 +383,7 @@ unixtime() ->
 to_now(Date) ->
     to_now(?DEFAULT_DISAMBIG, Date).
 
+-spec to_now(Disamb :: atom(), qdate()) -> {integer(), integer(), integer()} | {ambiguous, tuple(), tuple()}.
 to_now(_, Now = {_,_,_}) ->
     Now;
 to_now(Disamb, ToParse) ->
@@ -522,6 +534,7 @@ end_week(BeginningDayOfWeek, Date) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Comparisons     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec compare(A :: qdate(), B :: qdate()) -> integer().
 compare(A, B) ->
     NowA = to_now(A),
     NowB = to_now(B),
@@ -531,6 +544,7 @@ compare(A, B) ->
         NowA > NowB -> 1
     end.
 
+-spec compare(A :: qdate(), Op :: atom(), B :: qdate()) -> boolean().
 compare(A, Op, B) ->
     Comp = compare(A, B),
     case Op of
@@ -575,7 +589,7 @@ sort(Op, List) ->
 sort(Op, List, Opts) ->
     NonDateOpt = proplists:get_value(non_dates, Opts, back),
     WithNorm = add_sort_normalization(List, NonDateOpt),
-    SortFun = make_sort_fun(Op, Opts),
+    SortFun = make_sort_fun(Op, NonDateOpt),
     Sorted = lists:sort(SortFun, WithNorm),
     strip_sort_normalization(Sorted).
 
@@ -594,6 +608,7 @@ add_sort_normalization(List, NonDateOpt) ->
 strip_sort_normalization(List) ->
     [Date || {_, Date} <- List].
 
+-spec make_sort_fun(Op :: atom(), NonDateOpt :: front | back) -> fun().
 make_sort_fun(Op, NonDateOpt) ->
     DateComp = sort_op_comp_fun(Op),
     
@@ -687,6 +702,15 @@ add_years(Years, Date) ->
 add_years(Years) ->
     add_years(Years, os:timestamp()).
 
+-type unit() :: second | seconds |
+                minute | minutes |
+                hour | hours |
+                day | days |
+                week | weeks |
+                month | months |
+                year | years.
+
+-spec add_unit(Unit :: unit(), Value :: integer(), Date :: qdate()) -> qdate().
 add_unit(second, Value, Date) ->
     add_unit(seconds, Value, Date);
 add_unit(seconds, Value, Date) ->
@@ -1054,6 +1078,7 @@ date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) ->
             date_tz_to_tz_both(Date, FromTZ, ToTZ)
     end.
 
+-spec date_tz_to_tz_both(Date :: datetime(), FromTZ :: string(), ToTZ :: string()) -> datetime() | {ambiguous, datetime(), datetime()}.
 date_tz_to_tz_both(Date, FromTZ, ToTZ) ->
     Standard = localtime:local_to_local(Date, FromTZ, ToTZ),
     Daylight = localtime:local_to_local_dst(Date, FromTZ, ToTZ),
