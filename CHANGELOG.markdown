@@ -1,7 +1,10 @@
 ## 0.7.0
 
-* Some Dialyzer updates
+* Re-introduce the qdate server for storing qdate timezones, formats, and parsers,
+  rather than overloading the `application` env vars (since the `application`
+  module only wants keys to be atoms).
 * Convert to using `qdate_localtime` 1.2.0 (which passes dialyzer checks)
+* `qdate` is passing dialyzer again
 
 ## 0.6.0
 

@@ -9,9 +9,6 @@ endif
 
 all: compile
 
-dialyzer:
-	$(REBAR) dialyzer
-
 compile:
 	$(REBAR) compile
 
@@ -20,6 +17,11 @@ update:
 
 test: compile
 	$(REBAR) eunit
+
+dialyzer: compile
+	$(REBAR) dialyzer
+
+travis: test dialyzer
 
 run:
 	$(REBAR) shell
