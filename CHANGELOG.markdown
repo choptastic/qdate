@@ -1,3 +1,8 @@
+## 0.7.0
+
+* Some Dialyzer updates
+* Convert to using `qdate_localtime` 1.2.0 (which passes dialyzer checks)
+
 ## 0.6.0
 
 * Add `age` and `age_days` functions

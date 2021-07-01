@@ -4,7 +4,7 @@
 %
 -module(qdate).
 
--compile(export_all).
+%-compile(export_all).
 
 -export([
     start/0,
