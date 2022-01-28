@@ -107,7 +107,7 @@ will infer the timezone in the following order.
 
 #### Disambiguating Ambiguous Timezone Conversions
 
-Sometimes, when youre converting a datetime from one timezone to another, there
+Sometimes, when you're converting a datetime from one timezone to another, there
 are potentially two different results if the conversion happens to land on in a
 timezone that's in the middle of a Daylight Saving conversion.  For example,
 converting "11-Nov-2013 1:00:am" in "America/New York" to "GMT" could be both
@@ -536,7 +536,7 @@ qdate:between(qdate:add_minutes(-15), Date, qdate:add_minutes(15)).
 
 %% But, you don't have to: if that's a common format you use in your
 %% application, you can register your format with the `qdate` server, and then
-%% easiy refer to that format by its key.
+%% easily refer to that format by its key.
 
 %% So let's take that format and register it
 16> qdate:register_format(longdate, "l, F jS, Y g:i A T").
@@ -720,7 +720,7 @@ the week" calculation.  This has three forms, specifically:
      7=Sunday).
    + `beginning_week(DayOfWeek, Date)` - Calculates the beginning of the week
      based on the provided `DayOfWeek`. Valid values for DayOfWeek are the
-     integers 1-7 or the atom verions of the days of the week. Specifically:
+     integers 1-7 or the atom versions of the days of the week. Specifically:
 	 
      * Monday: `1 | monday | mon`
      * Tuesday: `2 | tuesday | tue`
