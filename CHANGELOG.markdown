@@ -22,7 +22,7 @@
   just the opposite of `beginning_X`)
 * Add `between/[2,3,5]` functions for computing whether a date/time is between
   two others.
-* Update to rebar3 and add hex compatability. (@Licenser)
+* Update to rebar3 and add hex compatibility. (@Licenser)
 * Properly add dependent apps to .app.src (@Licenser)
 * Add an optional "relative date/time parser".
 * Fix: Ensure `get_timezone()` returns the default timezone (from config) if it
