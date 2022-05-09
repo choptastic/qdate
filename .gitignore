@@ -3,6 +3,7 @@
 *.sw?
 *.iml
 deps/
+doc/
 ebin/
 .eunit/
 .idea/
