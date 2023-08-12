@@ -383,12 +383,12 @@ unixtime() ->
 to_now(Date) ->
     to_now(?DEFAULT_DISAMBIG, Date).
 
--spec to_now(Disamb :: atom(), qdate()) -> {integer(), integer(), integer()} | {ambiguous, tuple(), tuple()}.
+-spec to_now(Disamb :: atom(), qdate()) -> erlnow() | {ambiguous, erlnow(), erlnow()}.
 to_now(_, Now = {_,_,_}) ->
     Now;
 to_now(Disamb, ToParse) ->
     case to_unixtime(Disamb, ToParse) of
-        {ambiguous, Standard, Daylight} ->
+        {ambiguous, Standard, Daylight} when is_integer(Standard), is_integer(Daylight) ->
             {ambiguous, 
                 unixtime_to_now(Standard),
                 unixtime_to_now(Daylight)};
