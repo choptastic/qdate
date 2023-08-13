@@ -145,6 +145,7 @@
                     {{integer(), integer(), integer()}, {integer(), integer(), integer(), integer()}}.
 -type erlnow() :: {integer(), integer(), integer()}.
 -type binary_or_string() :: binary() | string().
+-type disambiguate() :: prefer_standard | prefer_daylight | both.
 
 %% erlang:get_stacktrace/0 is deprecated in OTP 21
 -ifndef(OTP_RELEASE).
@@ -179,7 +180,7 @@ to_string(Format, Date) ->
 to_string(Format, ToTZ, Date) ->
     to_string(Format, ToTZ, ?DEFAULT_DISAMBIG, Date).
 
--spec to_string(Format :: any(), ToTZ :: any(), Disambiguate :: atom(), Date :: qdate()) -> binary_or_string() | {ambiguous, binary_or_string() , binary_or_string()}.
+-spec to_string(Format :: any(), ToTZ :: any(), Disambiguate :: disambiguate(), Date :: qdate()) -> binary_or_string() | {ambiguous, binary_or_string() , binary_or_string()}.
 to_string(FormatKey, ToTZ, Disambiguate, Date) when is_atom(FormatKey) orelse is_tuple(FormatKey) ->
     Format = case qdate_srv:get_format(FormatKey) of
         undefined -> throw({undefined_format_key,FormatKey});
@@ -303,7 +304,7 @@ to_date(RawDate) ->
 to_date(ToTZ, RawDate) ->
     to_date(ToTZ, ?DEFAULT_DISAMBIG, RawDate).
 
--spec to_date(ToTZ :: any(), Disambiguate :: atom(), RawDate :: any()) -> {ambiguous, datetime(), datetime()} | datetime().
+-spec to_date(ToTZ :: any(), Disambiguate :: disambiguate(), RawDate :: any()) -> {ambiguous, datetime(), datetime()} | datetime().
 to_date(ToTZ, Disambiguate, RawDate) when is_binary(RawDate) ->
     to_date(ToTZ, Disambiguate, binary_to_list(RawDate));
 to_date(ToTZ, Disambiguate, RawDate) when is_binary(ToTZ) ->
@@ -361,7 +362,7 @@ get_deterministic_datetime() ->
 to_unixtime(Date) ->
     to_unixtime(?DEFAULT_DISAMBIG, Date).
 
--spec to_unixtime(Disamb :: atom(), qdate()) -> integer() | {ambiguous, integer(), integer()}.
+-spec to_unixtime(Disamb :: disambiguate(), qdate()) -> {ambiguous, integer(), integer()} | integer().
 to_unixtime(_, Unixtime) when is_integer(Unixtime) ->
     Unixtime;
 to_unixtime(_, {MegaSecs,Secs,_}) when is_integer(MegaSecs), is_integer(Secs) ->
@@ -383,7 +384,7 @@ unixtime() ->
 to_now(Date) ->
     to_now(?DEFAULT_DISAMBIG, Date).
 
--spec to_now(Disamb :: atom(), qdate()) -> erlnow() | {ambiguous, erlnow(), erlnow()}.
+-spec to_now(Disamb :: disambiguate(), qdate()) -> erlnow() | {ambiguous, erlnow(), erlnow()}.
 to_now(_, Now = {_,_,_}) ->
     Now;
 to_now(Disamb, ToParse) ->
@@ -1064,6 +1065,8 @@ determine_timezone() ->
 %% If FromTZ is an integer, then it's an integer that represents the number of minutes
 %% relative to GMT. So we convert the date to GMT based on that number, then we can
 %% do the other timezone conversion.
+-spec date_tz_to_tz(Date :: datetime(), Disambiguate :: disambiguate(), FromTZ :: any(), ToTZ :: any()) ->
+    datetime() | {ambiguous, datetime(), datetime()}.
 date_tz_to_tz(Date, Disambiguate, FromTZ, ToTZ) when is_integer(FromTZ) ->
     NewDate = localtime:adjust_datetime(Date, FromTZ),
     date_tz_to_tz(NewDate, Disambiguate, "GMT", ToTZ);
