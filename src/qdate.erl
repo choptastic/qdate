@@ -140,12 +140,22 @@
     parse/1
 ]).
 
+-export([set_opt/2,
+         get_opt/2,
+         get_opts/0]).
+
 -type qdate() :: any().
 -type datetime() :: {{integer(), integer(), integer()}, {integer(), integer(), integer()}} |
                     {{integer(), integer(), integer()}, {integer(), integer(), integer(), integer()}}.
 -type erlnow() :: {integer(), integer(), integer()}.
 -type binary_or_string() :: binary() | string().
 -type disambiguate() :: prefer_standard | prefer_daylight | both.
+
+%% Default qdate opts. See qdate.config for more info
+-define(QDATE_OPTS,
+    [{default_timezone, "GMT"},
+     {deterministic_parsing, {zero, zero}},
+     {preserve_ms, false}]).
 
 %% erlang:get_stacktrace/0 is deprecated in OTP 21
 -ifndef(OTP_RELEASE).
@@ -1201,6 +1211,19 @@ flooring(N) when N < 0 ->
         Int==N -> Int;
         true -> Int-1
     end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  OPTIONS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+set_opt(Key, Val) ->
+    {Key, _} = lists:keyfind(Key, 1, ?QDATE_OPTS),
+    persistent_term:put({qdate, Key}, Val).
+
+get_opt(Key, Default) ->
+    persistent_term:get({qdate, Key}, Default).
+
+get_opts() ->
+    [{Opt, persistent_term:get({qdate, Opt}, undefined)} || {Opt, _} <- ?QDATE_OPTS].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  TESTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
