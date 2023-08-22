@@ -1,4 +1,11 @@
-## 0.7.0
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 0.7.0 (2021-07-01)
 
 * Re-introduce the qdate server for storing qdate timezones, formats, and parsers,
   rather than overloading the `application` env vars (since the `application`
@@ -6,13 +13,13 @@
 * Convert to using `qdate_localtime` 1.2.0 (which passes dialyzer checks)
 * `qdate` is passing dialyzer again
 
-## 0.6.0
+## 0.6.0 (2021-06-01)
 
 * Add `age` and `age_days` functions
 * Add option to preserve millisecond accuracy in date parsing and formatting (@Leonardb)
 
 
-## 0.5.0
+## 0.5.0 (2019-08-21)
 
 * Add `range_X` functions for getting a list of dates/times within a range
   (such as `range_day/3` to get a range of days between a start and end date.
@@ -31,42 +38,42 @@
 * Fix Erlang 21 Stacktrace changes (@tnt-dev)
 * Set a better rebar2 version of erlware commons (@tnt-dev)
 
-## 0.4.2
+## 0.4.2 (2015-11-05)
 
 * Add partial support for `ec_date`'s 4-tuple subsecond accuracy time format.
 * Fix `erlware_commons` dependency to a rebar2-compatible version.
 
-## 0.4.1
+## 0.4.1 (2015-07-26)
 
 * Remove unnecessary `io:format` call.
 
-## 0.4.0
+## 0.4.0 (2015-04-30)
 
 * Remove dependency on a running server for tracking application state.
   Instead, parsers and formats are registered to the application environment
   vars (e.g. `application:get_env`), and timezones are registered to the
   application environment or the process dictionary. A side-effect of this
-  change is that you can no longer query another process's timezone. 
+  change is that you can no longer query another process's timezone.
 * Add basic date arithmetic (e.g. `qdate:add_hours/[1-2]`, etc).
 * Add `get_formats()` and `get_parsers()` to see list of registered formats and
   parsers.
 * Fix bug related to relying on the application environment variable
   `default_timezone`
 
-## 0.3.0
+## 0.3.0 (2014-05-11)
 
 * Add Timezone/Daylight Saving Disambiguation
 * Add the `auto` timezone shortcut
 * Fix rebar.config to allow for compilation on Erlang 17
 
-## 0.2.1
+## 0.2.1 (2013-09-23)
 
 * Fix allowing timezone names to be binary
 
-## 0.2.0
+## 0.2.0 (2013-09-12)
 
 * Adding `qdate:compare/2,3` for easily comparing dates
 
-## 0.1.0
+## 0.1.0 (2013-04-29)
 
 * Initial Release

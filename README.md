@@ -1,18 +1,23 @@
 # qdate - Erlang Date and Timezone Library
 
-[![Build Status](https://travis-ci.org/choptastic/qdate.png?branch=master)](https://travis-ci.org/choptastic/qdate)
+[![Build Status](https://img.shields.io/travis/choptastic/qdate/master.svg)](https://travis-ci.org/choptastic/qdate)
+[![Hex Version](https://img.shields.io/hexpm/v/qdate.svg)](https://hex.pm/packages/qdate)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/qdate/)
+[![Total Download](https://img.shields.io/hexpm/dt/qdate.svg)](https://hex.pm/packages/qdate)
+[![License](https://img.shields.io/hexpm/l/qdate.svg)](https://github.com/choptastic/qdate/blob/master/LICENSE.md)
+[![Last Updated](https://img.shields.io/github/last-commit/choptastic/qdate.svg)](https://github.com/choptastic/qdate/commits/master)
 
 ## Purpose
 
 Erlang Date and Time management is rather primitive, but improving.
 
-[dh_date](https://github.com/daleharvey/dh_date), of which `ec_date` in 
+[dh_date](https://github.com/daleharvey/dh_date), of which `ec_date` in
 [erlware_commons](https://github.com/erlware/erlware_commons) is a fork, is a
 huge step towards formatting and parsing dates in a way that compares nicely
-with PHP's [date](http://php.net/manual/en/function.date.php) and 
+with PHP's [date](http://php.net/manual/en/function.date.php) and
 [strtotime](http://php.net/manual/en/function.strtotime.php) functions.
 
-Unfortunately, `ec_date` doesn't deal with timezones, but conveniently, 
+Unfortunately, `ec_date` doesn't deal with timezones, but conveniently,
 the project [erlang_localtime](https://github.com/dmitryme/erlang_localtime)
 does.
 
@@ -92,7 +97,7 @@ two-tuple for `Date` (see "Acceptable Date formats" above).
 If no timezone is specified or determinable in a `Date` variable, then `qdate`
 will infer the timezone in the following order.
 
-  + If specified by `qdate:set_timezone(Timezone)` for that process. Note, as 
+  + If specified by `qdate:set_timezone(Timezone)` for that process. Note, as
     specified below (in the "Timezone Functions" section), `set_timezone/1` is
     a shortcut to `set_timezone(self(), Timezone)`, meaning that
     `set_timezone/1` only applies to that *specific* process. If none is
@@ -506,7 +511,7 @@ the crash.
 `qdate` ships with an optional relative time parser. To speed up performance
 (since this parser uses regular expressions), this parser is disabled by
 default. But if you wish to use it, make sure you call
-`qdate:register_parser(parse_relative, fun qdate:parse_relative/1)`. 
+`qdate:register_parser(parse_relative, fun qdate:parse_relative/1)`.
 
 Doing this allows you to parse relative time strings of the following formats:
 
@@ -542,7 +547,7 @@ qdate:between(qdate:add_minutes(-15), Date, qdate:add_minutes(15)).
 16> qdate:register_format(longdate, "l, F jS, Y g:i A T").
 ok
 
-%% Now, let's try to format our string 
+%% Now, let's try to format our string
 17> LongDateString = qdate:to_string(longdate, DateString).
 "Saturday, December 21st, 2013 12:24 PM GMT"
 
@@ -568,7 +573,7 @@ Let's see how we do this
 "Saturday, December 21st, 2013 4:24 AM PST"
 
 %% See something interesting there? Yeah, we told it it was PDT, but it output
-%% PST.  That's because PST is not in daylight saving time in December, and 
+%% PST.  That's because PST is not in daylight saving time in December, and
 %% `qdate` was able to intelligently infer that, and fix it for us.
 
 %% Note, that when in doubt, `qdate` will *not* convert. For example, not all
@@ -576,7 +581,7 @@ Let's see how we do this
 %% will not necessarily convert to EDT.
 
 %% However, if you provide the timezone as something like "America/New York",
-%% it *will* figure that out, and do the correct conversion for you. 
+%% it *will* figure that out, and do the correct conversion for you.
 
 %% Let's see how it handles unix times with strings that contain timezones.
 %% If you recall, LongDateString = "Saturday, December 21st, 2013 12:24 PM GMT"
@@ -619,7 +624,7 @@ ok
 %% need to ensure that a date is presented in an appropriate timezone.
 
 
-%% Let's register some timezones by "Timezone Keys".  
+%% Let's register some timezones by "Timezone Keys".
 25> qdate:set_timezone(my_site, "America/Chicago").
 ok
 26> qdate:set_timezone({user,1},"Australia/Melbourne").
@@ -713,7 +718,7 @@ midnight on the first day of the current month.
 
 qdate can also do a special "beginning" case, particularly the "beginning of
 the week" calculation.  This has three forms, specifically:
-  
+
    + `beginning_week()` - Returns first day of the current week.
    + `beginning_week(Date)` - Assumes the beginning of the week is Monday
      (chosen because Erlang's calendar:day_of_the_week uses 1=Monday and
@@ -721,7 +726,7 @@ the week" calculation.  This has three forms, specifically:
    + `beginning_week(DayOfWeek, Date)` - Calculates the beginning of the week
      based on the provided `DayOfWeek`. Valid values for DayOfWeek are the
      integers 1-7 or the atom versions of the days of the week. Specifically:
-	 
+
      * Monday: `1 | monday | mon`
      * Tuesday: `2 | tuesday | tue`
      * Wednesday: `3 | wednesday | wed`
@@ -880,7 +885,7 @@ not exist.
 
 ## Changelog
 
-See [CHANGELOG.markdown](https://github.com/choptastic/qdate/blob/master/CHANGELOG.markdown)
+See [CHANGELOG.md](https://github.com/choptastic/qdate/blob/master/CHANGELOG.md)
 
 ## TODO
 
@@ -906,4 +911,4 @@ Email: gumm@sigma-star.com
 
 Twitter: [@jessegumm](http://twitter.com/jessegumm)
 
-Released under the MIT License (see LICENSE file)
+Released under the MIT License (see [LICENSE.md](LICENSE.md) file)
