@@ -1,3 +1,14 @@
+## 0.7.2
+
+* Update the error message when qdate is not started with some better instructions.
+* Some minor updates for hex.pm
+* Removed the `erlnow()` warning
+* Fix some typos in the documentation
+* Update the makefile to use [rebar3.mk](https://rebar3.mk)
+* Skipped 0.7.1 only because there was a partially tagged 0.7.1 for a while,
+  but was never published to hex. Just to ensure upgrades are easier, I just skipped
+  a proper 0.7.1 release
+
 ## 0.7.0
 
 * Re-introduce the qdate server for storing qdate timezones, formats, and parsers,
