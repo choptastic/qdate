@@ -31,6 +31,12 @@ dev:
 run: rebar3
 	$(REBAR) shell
 
-publish: rebar3
+push_tags:
+	git push --tag
+
+pull_tags:
+	git pull --tag
+
+publish: rebar3 pull_tags
 	$(REBAR) hex publish
 
