@@ -5,9 +5,9 @@
   {registered, []},
   {applications, [
                   kernel,
+                  stdlib,
                   qdate_localtime,
-                  erlware_commons,
-                  stdlib
+                  erlware_commons
                  ]},
   {modules, [qdate, qdate_srv, qdate_sup, qdate_app]},
   {env, []},

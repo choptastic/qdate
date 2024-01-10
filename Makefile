@@ -1,18 +1,18 @@
-REBAR_PATH = $(shell which rebar3)
-
-ifeq ($(REBAR_PATH),)
-REBAR = $(shell pwd)/rebar3
-else
-REBAR = rebar3
-endif
-
-
 all: compile
 
-compile:
+# Check if rebar3.mk exists, and if not, download it
+ifeq ("$(wildcard rebar3.mk)","")
+$(shell curl -O https://raw.githubusercontent.com/choptastic/rebar3.mk/master/rebar3.mk)
+endif
+
+# rebar3.mk adds a new rebar3 rule to your Makefile
+# (see https://github.com/choptastic/rebar3.mk) for full info
+include rebar3.mk
+
+compile: rebar3
 	$(REBAR) compile
 
-update:
+update: rebar3
 	$(REBAR) update
 
 test: compile
@@ -28,11 +28,9 @@ dev:
 	cd _checkouts; git clone https://github.com/choptastic/qdate_localtime
 
 
-run:
+run: rebar3
 	$(REBAR) shell
 
-publish:
-	$(REBAR) as pkg upgrade
-	$(REBAR) as pkg hex publish
-	$(REBAR) upgrade
+publish: rebar3
+	$(REBAR) hex publish
 

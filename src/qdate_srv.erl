@@ -152,8 +152,26 @@ unset_env(Key) ->
     gen_server:call(?SERVER, {unset, ?KEY(Key)}).
 
 get_all_env(FilterTag) ->
-    All = ets:tab2list(?TABLE),
-    [{Key, V} || {{?BASETAG, {Tag, Key}}, V} <- All, Tag==FilterTag].
+    try ets:tab2list(?TABLE) of
+        All ->
+            [{Key, V} || {{?BASETAG, {Tag, Key}}, V} <- All, Tag==FilterTag]
+    catch
+        error:badarg:S ->
+            Msg = maybe_start_msg(),
+            logger:error(Msg),
+          
+            error({qdate_get_all_env_failed, #{
+                original_error => {error, badarg, S}
+            }})
+    end.
+
+maybe_start_msg() ->
+    "Attempting to read qdate environment failed (qdate_srv:get_all_env/1).\n"
+    "qdate may not have been started properly.\n"
+    "Please ensure qdate is started properly by either:\n"
+    "* Putting qdate in the 'applications' key in your .app.src or .app file, or\n"
+    "* Starting it manually with application:ensure_all_started(qdate) or qdate:start().".
+
 
 %% ProcDic Vars
 
