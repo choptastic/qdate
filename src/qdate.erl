@@ -140,12 +140,22 @@
     parse/1
 ]).
 
+-export([set_opt/2,
+         get_opt/2,
+         get_opts/0]).
+
 -type qdate() :: any().
 -type datetime() :: {{integer(), integer(), integer()}, {integer(), integer(), integer()}} |
                     {{integer(), integer(), integer()}, {integer(), integer(), integer(), integer()}}.
 -type erlnow() :: {integer(), integer(), integer()}.
 -type binary_or_string() :: binary() | string().
 -type disambiguate() :: prefer_standard | prefer_daylight | both.
+
+%% Default qdate opts. See qdate.config for more info
+-define(QDATE_OPTS,
+    [{default_timezone, "GMT"},
+     {deterministic_parsing, {zero, zero}},
+     {preserve_ms, false}]).
 
 %% erlang:get_stacktrace/0 is deprecated in OTP 21
 -ifndef(OTP_RELEASE).
@@ -162,7 +172,6 @@
 
 -define(DETERMINE_TZ, determine_timezone()).
 -define(DEFAULT_DISAMBIG, prefer_standard).
--define(else, true).
 
 
 start() ->
@@ -350,13 +359,13 @@ raw_to_date(Date = {{_,_,_},{_,_,_}}) ->
 get_deterministic_datetime() ->
     DateZero = {1970,1,1},
     TimeZero = {0,0,0},
-    case application:get_env(qdate, deterministic_parsing) of
-        {ok, {zero, zero}}  -> {DateZero, TimeZero};
-        {ok, {zero, now}}   -> {DateZero, time()};
-        {ok, {now, zero}}   -> {date(), TimeZero};
-        {ok, {now, now}}    -> {date(), time()};
-        undefined           -> {DateZero, TimeZero};
-        {ok, Val}           -> throw({invalid_env_var, {qdate, deterministic_parsing, Val}})
+    case get_opt(deterministic_parsing, undefined) of
+        {zero, zero}  -> {DateZero, TimeZero};
+        {zero, now}   -> {DateZero, time()};
+        {now, zero}   -> {date(), TimeZero};
+        {now, now}    -> {date(), time()};
+        undefined     -> {DateZero, TimeZero};
+        Val           -> throw({invalid_env_var, {qdate, deterministic_parsing, Val}})
     end.
 
 to_unixtime(Date) ->
@@ -1041,19 +1050,19 @@ extract_timezone_helper(RevDate, [_TZ | TZs]) ->
     extract_timezone_helper(RevDate, TZs).
 
 preserve_ms() ->
-    application:get_env(qdate, preserve_ms, false).
+    get_opt(preserve_ms, false).
 
 %% This is the timezone only if the qdate application variable 
 %% "default_timezone" isn't set or is set to undefined.
 %% It's recommended that your app sets the var in a config, or at least using
 %%
-%%      application:set_env(qdate, default_timezone, "GMT").
+%%      qdate:set_opt(default_timezone, "GMT").
 %%
 default_timezone() ->
-    case application:get_env(qdate, default_timezone) of 
+    case get_opt(default_timezone, undefined) of
         undefined -> "GMT";
-        {ok, {Mod, Fun}} -> Mod:Fun();
-        {ok, TZ} -> TZ 
+        {Mod, Fun} -> Mod:Fun();
+        TZ -> TZ
     end.
 
 determine_timezone() ->
@@ -1088,7 +1097,7 @@ date_tz_to_tz_both(Date, FromTZ, ToTZ) ->
     if
         Standard=:=Daylight ->
             Standard;
-        ?else -> 
+        true ->
             {ambiguous, Standard, Daylight}
     end.           
 
@@ -1204,6 +1213,19 @@ flooring(N) when N < 0 ->
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  OPTIONS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+set_opt(Key, Val) ->
+    {Key, _} = lists:keyfind(Key, 1, ?QDATE_OPTS),
+    persistent_term:put({qdate, Key}, Val).
+
+get_opt(Key, Default) ->
+    persistent_term:get({qdate, Key}, Default).
+
+get_opts() ->
+    [{Opt, persistent_term:get({qdate, Opt}, undefined)} || {Opt, _} <- ?QDATE_OPTS].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  TESTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1260,15 +1282,15 @@ tz_preserve_ms_false_test_() ->
 
 test_deterministic_parser(_) ->
     {inorder, [
-        ?_assertEqual(ok, application:set_env(qdate, deterministic_parsing, {now, now})),
+        ?_assertEqual(ok, set_opt(deterministic_parsing, {now, now})),
         ?_assertEqual({date(), {7,0,0}}, qdate:to_date("7am")),
         ?_assertEqual({{2012,5,10}, time()}, qdate:to_date("2012-5-10")),
 
-        ?_assertEqual(ok, application:set_env(qdate, deterministic_parsing, {zero, zero})),
+        ?_assertEqual(ok, set_opt(deterministic_parsing, {zero, zero})),
         ?_assertEqual({{1970,1,1}, {7,0,0}}, qdate:to_date("7am")),
         ?_assertEqual({{2012,5,10}, {0,0,0}}, qdate:to_date("2012-5-10")),
 
-        ?_assertEqual(ok, application:unset_env(qdate, deterministic_parsing)),
+        ?_assertEqual(ok, set_opt(deterministic_parsing, undefined)),
         ?_assertEqual({{1970,1,1}, {7,0,0}}, qdate:to_date("7am")),
         ?_assertEqual({{2012,5,10}, {0,0,0}}, qdate:to_date("2012-5-10"))
     ]}.
@@ -1467,7 +1489,7 @@ arith_tests(_) ->
     ]}.
 
 preserve_ms_true_tests(_) ->
-    application:set_env(qdate, preserve_ms, true),
+    set_opt(preserve_ms, true),
     {inorder, [
       ?_assertEqual({{2021,5,8},{23,0,16,472000}}, qdate:to_date(<<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
       ?_assertEqual(<<"2021-05-08T23:00:16.472000+00:00">>, qdate:to_string(<<"Y-m-d\\TH:i:s.fP">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
@@ -1476,7 +1498,7 @@ preserve_ms_true_tests(_) ->
     ]}.
 
 preserve_ms_false_tests(_) ->
-    application:set_env(qdate, preserve_ms, false),
+    set_opt(preserve_ms, false),
     {inorder, [
         ?_assertEqual({{2021,5,8},{23,0,16}}, qdate:to_date(<<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
         ?_assertEqual(<<"2021-05-08T23:00:16.0+00:00">>, qdate:to_string(<<"Y-m-d\\TH:i:s.fP">>, <<"UTC">>,<<"2021-5-09 0:0:16.472+01:00">>)),
