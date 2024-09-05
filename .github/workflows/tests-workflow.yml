@@ -3,7 +3,7 @@ on: push
 
 jobs:
   linux:
-    name: OTP ${{ matrix.otp_version }} (${{ matrix.mysql }}/PG ${{ matrix.pg}})
+    name: OTP ${{ matrix.otp_version }}
     runs-on: ${{ matrix.os }}
     continue-on-error: true
 
