@@ -22,8 +22,6 @@ test:
 dialyzer: compile
 	DIALYZER=1 $(REBAR) dialyzer
 
-travis: test dialyzer
-
 dev:
 	mkdir -p _checkouts
 	cd _checkouts; git clone https://github.com/choptastic/qdate_localtime

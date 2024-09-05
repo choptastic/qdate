@@ -1,6 +1,6 @@
 # qdate - Erlang Date and Timezone Library
 
-[![Build Status](https://travis-ci.org/choptastic/qdate.png?branch=master)](https://travis-ci.org/choptastic/qdate)
+[![qdate tests and dialyzer](https://github.com/choptastic/qdate/actions/workflows/tests-workflow.yml/badge.svg)](https://github.com/choptastic/qdate/actions/workflows/tests-workflow.yml)
 
 ## Purpose
 
