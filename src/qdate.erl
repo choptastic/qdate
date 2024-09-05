@@ -1206,6 +1206,8 @@ flooring(N) when N < 0 ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  TESTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-ifdef(EUNIT).
+
 -include_lib("eunit/include/eunit.hrl").
 
 %% emulates as if a forum-type website has a Site tz, and a user-specified tz
@@ -1529,3 +1531,5 @@ microsoft_parser(_) ->
 
 stop_test(_) ->
     ok.
+
+-endif.

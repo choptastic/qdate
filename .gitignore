@@ -7,3 +7,4 @@ ebin/
 .eunit/
 .idea/
 _build
+doc/

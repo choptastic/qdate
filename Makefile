@@ -15,11 +15,12 @@ compile: rebar3
 update: rebar3
 	$(REBAR) update
 
-test: compile
-	$(REBAR) eunit
+test:
+	EUNIT=1 $(REBAR) compile
+	EUNIT=1 $(REBAR) eunit
 
 dialyzer: compile
-	$(REBAR) dialyzer
+	DIALYZER=1 $(REBAR) dialyzer
 
 travis: test dialyzer
 
