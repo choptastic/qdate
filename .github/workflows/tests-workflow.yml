@@ -1,0 +1,47 @@
+name: qdate tests and dialyzer
+on: push
+
+jobs:
+  linux:
+    name: OTP ${{ matrix.otp_version }} (${{ matrix.mysql }}/PG ${{ matrix.pg}})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            otp_version: '27.x'
+            rebar3_version: "3.24.0"
+          - os: ubuntu-22.04
+            otp_version: '27.x'
+            rebar3_version: "3.23.0"
+          - os: ubuntu-22.04
+            otp_version: '26.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            otp_version: '25.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-22.04
+            otp_version: '24.x'
+            rebar3_version: "3.22.1"
+          - os: ubuntu-20.04
+            otp_version: '23.x'
+            rebar3_version: "3.19.0"
+
+    steps:
+      - name: Install OTP ${{matrix.otp_version}}
+        uses: erlef/setup-beam@v1
+        with:
+          version-type: loose
+          otp-version: ${{ matrix.otp_version}}
+          rebar3-version: ${{ matrix.rebar3_version}}
+
+      - name: Checkout qdate
+        uses: actions/checkout@v3
+
+      - name: Run Tests
+        run: make test
+
+      - name: Run Dialyzer
+        run: make dialyzer
