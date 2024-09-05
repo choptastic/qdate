@@ -38,7 +38,7 @@ jobs:
           rebar3-version: ${{ matrix.rebar3_version}}
 
       - name: Checkout qdate
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Tests
         run: make test
