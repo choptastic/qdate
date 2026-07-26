@@ -1,14 +1,14 @@
 {"1.2.0",
 [{<<"cf">>,{pkg,<<"cf">>,<<"0.3.1">>},1},
- {<<"erlware_commons">>,{pkg,<<"erlware_commons">>,<<"1.6.0">>},0},
- {<<"qdate_localtime">>,{pkg,<<"qdate_localtime">>,<<"1.2.1">>},0}]}.
+ {<<"erlware_commons">>,{pkg,<<"erlware_commons">>,<<"1.9.1">>},0},
+ {<<"qdate_localtime">>,{pkg,<<"qdate_localtime">>,<<"1.2.2">>},0}]}.
 [
 {pkg_hash,[
  {<<"cf">>, <<"5CB902239476E141EA70A740340233782D363A31EEA8AD37049561542E6CD641">>},
- {<<"erlware_commons">>, <<"E0DA62F91E65DEFAE28BB450DDC3C24E85ECB99B926F857CDC6ED8E7DD7076B4">>},
- {<<"qdate_localtime">>, <<"72E1034DC6B7FEE8F588281EDDD0BD0DC5260005D758052F50634D265D382C18">>}]},
+ {<<"erlware_commons">>, <<"3EF1244D9E57C884A5B4A13CB59E51FCED282BF638E0BCC5386AC4294568314E">>},
+ {<<"qdate_localtime">>, <<"43E1B20102F50A8B2A2BE7042C2F6BE989AD96CA2CC319DB5DF56E122E8873F6">>}]},
 {pkg_hash_ext,[
  {<<"cf">>, <<"315E8D447D3A4B02BCDBFA397AD03BBB988A6E0AA6F44D3ADD0F4E3C3BF97672">>},
- {<<"erlware_commons">>, <<"B57C299C39A2992A8C413F9D2C1B8A20061310FB4432B0EEE5E4C4DF7AAA0AA3">>},
- {<<"qdate_localtime">>, <<"1109958D205C65C595C8C5694CB83EBAF2DBE770CF902E4DCE8AFB2C4123764D">>}]}
+ {<<"erlware_commons">>, <<"995313D2C57743E50E8597ACE165057762E9B9CF9F7A5F7E95EAFF631384E844">>},
+ {<<"qdate_localtime">>, <<"A38D5F1C5AE14B22F471E442B262AECCAFB915B664C7C364443DC73179C50FDA">>}]}
 ].

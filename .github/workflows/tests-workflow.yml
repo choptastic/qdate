@@ -10,12 +10,15 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: ubuntu-26.04
+            otp_version: '29.x'
+            rebar3_version: "3.27.0"
+          - os: ubuntu-24.04
+            otp_version: '28.x'
+            rebar3_version: "3.26.0"
           - os: ubuntu-22.04
             otp_version: '27.x'
-            rebar3_version: "3.24.0"
-          - os: ubuntu-22.04
-            otp_version: '27.x'
-            rebar3_version: "3.23.0"
+            rebar3_version: "3.25.0"
           - os: ubuntu-22.04
             otp_version: '26.x'
             rebar3_version: "3.22.1"
