@@ -28,7 +28,7 @@ jobs:
           - os: ubuntu-22.04
             otp_version: '24.x'
             rebar3_version: "3.22.1"
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             otp_version: '23.x'
             rebar3_version: "3.19.0"
 
